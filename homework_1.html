@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Private key to public key on a toy elliptic curve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #F5F6F8; --surface: #FFFFFF; --ink: #1A2230; --muted: #5F6B7A; --faint: #8A95A3;
+  --rule: #DFE3E9; --rule-soft: #ECEFF3;
+  --g: #3346C7; --g-soft: #EBEEFC; --res: #0B7D61; --res-soft: #E1F3EC;
+  --chord: #C06C0C; --chord-soft: #FBEEDB; --bad: #B4372B; --pt: #A3ADB9;
+  --on-accent: #FFFFFF;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1319; --surface: #161C24; --ink: #E3E7EC; --muted: #98A3B0; --faint: #6E7987;
+    --rule: #28313C; --rule-soft: #1E2630;
+    --g: #8E9CFF; --g-soft: #222A4D; --res: #45C79F; --res-soft: #12352C;
+    --chord: #EFA341; --chord-soft: #3A2911; --bad: #F07B6E; --pt: #56616E;
+    --on-accent: #0F1319; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0F1319; --surface: #161C24; --ink: #E3E7EC; --muted: #98A3B0; --faint: #6E7987;
+  --rule: #28313C; --rule-soft: #1E2630;
+  --g: #8E9CFF; --g-soft: #222A4D; --res: #45C79F; --res-soft: #12352C;
+  --chord: #EFA341; --chord-soft: #3A2911; --bad: #F07B6E; --pt: #56616E;
+  --on-accent: #0F1319; color-scheme: dark;
+}
+:root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 14.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+a { color: var(--g); }
+:focus-visible { outline: 2px solid var(--g); outline-offset: 2px; }
+p { margin: 0 0 10px; }
+
+/* header */
+.hero { padding: 40px 24px 8px; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: end; }
+.hero .course { color: var(--faint); margin: 0 0 8px; font-size: 12.5px; letter-spacing: .01em; }
+.hero h1 { font-size: 26px; line-height: 1.25; font-weight: 600; letter-spacing: -0.012em; margin: 0 0 10px; max-width: 26em; }
+.lede { max-width: 60ch; margin: 0; color: var(--muted); font-size: 14.5px; }
+.keyline { display: grid; gap: 2px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); min-width: 250px; }
+.kl-label { color: var(--muted); font-size: 12px; }
+.kl-value { font-family: var(--mono); font-size: 21px; font-weight: 600; color: var(--res); overflow-wrap: anywhere; }
+.kl-sub { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 26px 0 0; padding: 0 0 22px; border-bottom: 1px solid var(--rule); font-size: 13px; }
+.toc a { text-decoration: none; color: var(--muted); padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); }
+.toc a:hover { color: var(--g); border-color: var(--g); }
+
+/* sections */
+.task { padding: 34px 0 30px; border-bottom: 1px solid var(--rule); }
+.task:last-of-type { border-bottom: 0; }
+.task h2 { font-size: 18px; font-weight: 600; line-height: 1.35; margin: 0 0 10px; display: flex; gap: 10px; align-items: center; letter-spacing: -0.005em; }
+.task h2 .num { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--g); background: var(--g-soft); width: 24px; height: 24px; border-radius: 6px; display: inline-grid; place-items: center; flex: none; }
+.task h3 { font-size: 14.5px; font-weight: 600; margin: 26px 0 6px; }
+.task > p, .task p { max-width: 68ch; color: var(--ink); }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.mono { font-family: var(--mono); }
+
+/* controls */
+.controls { display: flex; flex-wrap: wrap; gap: 12px 14px; align-items: flex-end; margin: 16px 0 6px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); }
+.field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.field input, .field select { font-family: var(--mono); font-size: 13px; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 6px 9px; height: 33px; min-width: 110px; }
+.field input[type="range"] { margin: 0; padding: 0; height: 33px; background: transparent; border: 0; min-width: 130px; accent-color: var(--g); }
+.field input.wide { min-width: 220px; }
+.btn { font-family: var(--sans); font-size: 13px; font-weight: 600; border-radius: 7px; padding: 0 14px; height: 33px; cursor: pointer; border: 1px solid var(--g); background: var(--g); color: var(--on-accent); }
+.btn.ghost { background: transparent; color: var(--g); border-color: var(--rule); }
+.btn.ghost:hover { border-color: var(--g); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.err { color: var(--bad); min-height: 1em; margin: 4px 0; font-size: 13px; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 20px; margin: 14px 0 0; font-size: 13.5px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-family: var(--mono); font-size: 12.5px; padding-top: 1px; }
+.ok { color: var(--res); font-weight: 600; }
+
+/* traces */
+.console { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 14px 16px; overflow-x: auto; margin: 14px 0; }
+.console .hl { color: var(--res); font-weight: 600; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); margin: 10px 0; }
+table.trace { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+table.trace th { text-align: left; font-weight: 600; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--rule); white-space: nowrap; font-size: 12px; background: var(--paper); }
+table.trace td { padding: 7px 12px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; font-family: var(--mono); font-size: 12px; }
+table.trace tr:last-child td { border-bottom: 0; }
+table.trace td.res { color: var(--res); font-weight: 600; white-space: nowrap; }
+table.trace td .xy { display: block; color: var(--faint); margin-top: 2px; }
+table.trace tr.gap td { text-align: center; color: var(--faint); }
+table.trace tr.final td { background: var(--res-soft); }
+.bits { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0; font-family: var(--mono); }
+.bits:empty { display: none; }
+.bits span { display: inline-grid; place-items: center; min-width: 22px; height: 24px; border: 1px solid var(--rule); border-radius: 5px; background: var(--surface); font-size: 12px; color: var(--muted); }
+.bits span.one { background: var(--g-soft); border-color: transparent; color: var(--g); font-weight: 600; }
+.bits span.cur { outline: 2px solid var(--chord); outline-offset: 1px; }
+
+/* slow-motion visualisation */
+.viz { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; margin-top: 16px; align-items: start; }
+.plotbox { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); margin: 0; overflow: hidden; }
+.plotbox svg { display: block; width: 100%; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 9px 14px; border-top: 1px solid var(--rule-soft); font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.vside .controls { margin-top: 0; }
+.narr { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 14px 16px; min-height: 170px; font-size: 13.5px; }
+.narr .stephead { font-weight: 600; margin: 0 0 6px; font-size: 13.5px; }
+.narr p { margin: 6px 0; }
+.narr .f { font-family: var(--mono); font-size: 12.5px; display: block; margin: 6px 0; padding: 6px 9px; border-radius: 6px; background: var(--chord-soft); color: var(--chord); overflow-wrap: anywhere; }
+.narr .f.r { color: var(--res); background: var(--res-soft); font-weight: 600; }
+.counter { font-size: 12px; color: var(--faint); margin: 8px 0 0; }
+svg .plot-bg { fill: var(--surface); }
+svg .gridline { stroke: var(--rule-soft); stroke-width: 1; }
+svg .axis { stroke: var(--rule); stroke-width: 1; }
+svg .midline { stroke: var(--rule); stroke-dasharray: 4 5; stroke-width: 1; }
+svg .tick { fill: var(--faint); font-family: var(--mono); font-size: 10.5px; }
+svg .pt { fill: var(--pt); }
+svg .trail { fill: var(--g); }
+svg .trail-lbl { fill: var(--g); font-family: var(--mono); font-size: 10.5px; font-weight: 600; }
+svg .chord { fill: var(--chord); }
+svg .op { fill: none; stroke: var(--g); stroke-width: 2; }
+svg .op-lbl { fill: var(--g); font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+svg .third { fill: none; stroke: var(--chord); stroke-width: 2; stroke-dasharray: 3 2; }
+svg .third-lbl { fill: var(--chord); font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+svg .reflect { stroke: var(--res); stroke-width: 1.8; stroke-dasharray: 5 4; fill: none; }
+svg .res { fill: var(--res); stroke: var(--surface); stroke-width: 2; }
+svg .res-lbl { fill: var(--res); font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+svg .infbox { fill: var(--res-soft); stroke: var(--res); }
+svg .bar { fill: var(--g); }
+svg .bar2 { fill: var(--res); }
+svg .bar3 { fill: var(--chord); }
+svg .refline { stroke: var(--chord); stroke-dasharray: 5 4; stroke-width: 1.3; }
+svg .dot { fill: var(--g); fill-opacity: .5; }
+@media (prefers-reduced-motion: no-preference) {
+  svg .anim { animation: pop .35s ease-out both; }
+  @keyframes pop { from { opacity: 0; } to { opacity: 1; } }
+}
+
+/* statistics */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+figure.chart { margin: 10px 0; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 10px 12px 2px; }
+figure.chart svg { display: block; width: 100%; height: auto; }
+figure.chart figcaption { font-size: 12.5px; color: var(--muted); padding: 6px 2px 10px; line-height: 1.5; border-top: 1px solid var(--rule-soft); margin-top: 6px; }
+.meter { display: inline-block; height: 6px; border-radius: 3px; background: var(--g); vertical-align: middle; margin-right: 8px; }
+.meter.ref { background: var(--chord); }
+.checks { list-style: none; padding: 0; margin: 10px 0; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); }
+.checks li { padding: 9px 14px; border-bottom: 1px solid var(--rule-soft); font-size: 13.5px; display: flex; gap: 12px; }
+.checks li:last-child { border-bottom: 0; }
+.checks .mark { font-family: var(--mono); font-size: 12px; font-weight: 600; min-width: 64px; }
+.checks .mark.yes { color: var(--res); }
+.checks .mark.no { color: var(--bad); }
+#sSummary { font-size: 13px; }
+
+/* discussion */
+table.disc { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.disc th, table.disc td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+table.disc th { color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--rule); font-size: 12px; background: var(--paper); }
+table.disc tr:last-child td { border-bottom: 0; }
+table.disc td:first-child { font-weight: 500; }
+table.disc td.yes { color: var(--res); font-weight: 600; white-space: nowrap; }
+table.disc td.no { color: var(--faint); white-space: nowrap; }
+table.disc td.obs { color: var(--muted); }
+.callout { background: var(--g-soft); border-radius: var(--radius); padding: 12px 16px; margin: 18px 0; max-width: 72ch; font-size: 14px; }
+
+.secp-out { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 4px 16px 14px; margin: 10px 0; }
+.secp-out:empty { display: none; }
+.secp-out dt { color: var(--muted); font-family: var(--sans); font-size: 12px; margin-top: 10px; }
+.secp-out dd { margin: 2px 0 0; }
+footer { padding: 22px 0 44px; color: var(--faint); font-size: 12.5px; border-top: 1px solid var(--rule); }
+
+@media (max-width: 820px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 18px; }
+  .viz { grid-template-columns: 1fr; }
+  .facts { grid-template-columns: 1fr; gap: 2px 0; }
+  .facts dd { margin-bottom: 8px; }
+  .hero h1 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+<header class="wrap hero">
+  <div class="hero-grid">
+    <div>
+      <p class="course">Homework 1: public-key cryptography in Ethereum</p>
+      <h1>From a private key to a public key, one point at a time</h1>
+      <p class="lede">Ethereum turns a secret number k into a public key Q with elliptic-curve scalar multiplication on secp256k1: Q = kG. Going forward is fast; going back is the elliptic-curve discrete logarithm problem. This page runs the same algorithm on a curve small enough to watch every step.</p>
+    </div>
+    <div class="keyline" aria-live="polite">
+      <span class="kl-label">Toy public key</span>
+      <output id="heroKey" class="kl-value">Q = 6G = (5, 8)</output>
+      <span id="heroSub" class="kl-sub">y² = x³ + 7 (mod 17), G = (1, 5), k = 6</span>
+    </div>
+  </div>
+  <nav class="toc" aria-label="Sections">
+    <a href="#setup">1. Curve and key</a>
+    <a href="#compute">2. G, 2G, …, kG</a>
+    <a href="#slow">3. Slow motion</a>
+    <a href="#stats">4. Statistics</a>
+    <a href="#discussion">5. Discussion</a>
+    <a href="#secp">6. The real curve</a>
+  </nav>
+</header>
+
+<main class="wrap">
+
+<section id="setup" class="task">
+  <h2><span class="num">1</span>Define the toy curve, the base point and the private key</h2>
+  <p>The curve is the set of points (x, y) with y² ≡ x³ + 7 (mod p), plus a point at infinity O that acts as zero. The homework uses p = 17, G = (1, 5) and k = 6. Larger primes are available for the statistics; the equation stays the same as in secp256k1 (a = 0, b = 7).</p>
+  <div class="controls">
+    <label class="field"><span>Prime p</span>
+      <select id="pSel">
+        <option value="17" selected>17 (homework)</option>
+        <option value="23">23</option>
+        <option value="101">101</option>
+        <option value="1009">1009</option>
+      </select></label>
+    <label class="field"><span>Base point G</span><select id="gSel"></select></label>
+    <label class="field"><span>Private key k (decimal or 0x hex)</span><input id="kIn" class="wide" value="6" autocomplete="off" spellcheck="false"></label>
+    <button id="randK" class="btn ghost" type="button">Random 64-bit k</button>
+  </div>
+  <p id="kErr" class="err" role="alert"></p>
+  <dl class="facts" id="facts"></dl>
+</section>
+
+<section id="compute" class="task">
+  <h2><span class="num">2</span>Compute and print G, 2G, 3G, …, kG</h2>
+  <p>Every step uses the point-addition rule. With slope λ, the sum of P = (x₁, y₁) and Q = (x₂, y₂) is x₃ = λ² − x₁ − x₂ and y₃ = λ(x₁ − x₃) − y₁. The slope is λ = (y₂ − y₁)/(x₂ − x₁) for two different points, or λ = 3x₁²/(2y₁) when a point is added to itself (doubling). Division means multiplying by the modular inverse, computed with the extended Euclidean algorithm.</p>
+  <pre id="console" class="console" aria-label="Program output"></pre>
+  <h3>Method 1: repeated addition</h3>
+  <p class="small muted">nG = (n − 1)G + G. It needs k − 1 additions, so it only works for small k.</p>
+  <div class="tablewrap"><table class="trace" id="t1"></table></div>
+  <h3>Method 2: double-and-add (the faster method)</h3>
+  <p class="small muted">Read k in binary from the left. For every bit, double R; when the bit is 1, also add G. It needs about log₂ k operations, which is what makes 256-bit keys practical.</p>
+  <div class="bits" id="bitsView" aria-label="Binary digits of k"></div>
+  <div class="tablewrap"><table class="trace" id="t2"></table></div>
+  <p id="opsCompare"></p>
+</section>
+
+<section id="slow" class="task">
+  <h2><span class="num">3</span>Slow-motion view of the algorithm</h2>
+  <p>Grey dots are all the points of the curve. Each addition draws the line through the two points (orange dots: modulo p a line is a set of points that wraps around the grid), marks where it meets the curve a third time, and reflects that point across the dashed middle line, because −y ≡ p − y.</p>
+  <div class="viz">
+    <figure class="plotbox">
+      <svg id="plot" viewBox="0 0 560 560" role="img" aria-label="Points of the toy curve on a p by p grid, with the current step of the scalar multiplication"></svg>
+      <figcaption class="legend">
+        <span><i style="background:var(--pt)"></i>curve points</span>
+        <span><i style="background:var(--g)"></i>multiples of G found so far</span>
+        <span><i style="background:var(--chord)"></i>line through P and Q</span>
+        <span><i style="background:var(--res)"></i>result</span>
+      </figcaption>
+    </figure>
+    <div class="vside">
+      <div class="controls">
+        <label class="field"><span>Algorithm</span>
+          <select id="algo">
+            <option value="naive">Repeated addition</option>
+            <option value="da">Double-and-add</option>
+          </select></label>
+        <label class="field"><span>Speed</span><input id="speed" type="range" min="0.25" max="4" step="0.25" value="1"></label>
+        <button id="play" class="btn" type="button">Play</button>
+        <button id="step" class="btn ghost" type="button">Next step</button>
+        <button id="reset" class="btn ghost" type="button">Restart</button>
+      </div>
+      <div class="bits" id="animBits" aria-hidden="true"></div>
+      <div id="narr" class="narr" aria-live="polite"></div>
+      <p id="counter" class="counter"></p>
+    </div>
+  </div>
+</section>
+
+<section id="stats" class="task">
+  <h2><span class="num">4</span>Statistical exploration</h2>
+  <p>Repeat the computation for many values of k and for different base points, then look at what comes out. Consecutive k show the structure most clearly; random k (from a seeded generator, so results are reproducible) imitate how keys are chosen. SHA-256 of the same k is computed alongside as a reference for how a hash function behaves.</p>
+  <div class="controls">
+    <label class="field"><span>Base point</span><select id="sBase"></select></label>
+    <label class="field"><span>Values of k</span>
+      <select id="sMode">
+        <option value="seq">Consecutive k = 1, 2, …, K</option>
+        <option value="rand">Random k with m bits</option>
+      </select></label>
+    <label class="field"><span>How many k (K)</span><input id="sK" value="1000" inputmode="numeric"></label>
+    <label class="field"><span>Bits m (random k)</span><input id="sM" value="16" inputmode="numeric"></label>
+    <label class="field"><span>Seed</span><input id="sSeed" value="2026" inputmode="numeric"></label>
+    <button id="sRun" class="btn" type="button">Run experiment</button>
+  </div>
+  <p id="sErr" class="err" role="alert"></p>
+  <p id="sSummary" class="muted"></p>
+  <div id="sOut"></div>
+</section>
+
+<section id="discussion" class="task">
+  <h2><span class="num">5</span>Discussion: one-way function or hash function?</h2>
+  <div id="discBody"></div>
+</section>
+
+<section id="secp" class="task">
+  <h2><span class="num">6</span>The same algorithm on secp256k1</h2>
+  <p>The double-and-add code above, rewritten with BigInt, computes a real Ethereum public key. Only the numbers change: p and the group order n are 256-bit primes. Educational only: this code is not constant-time and must never see a real private key.</p>
+  <div class="controls">
+    <label class="field"><span>Private key k (decimal or 0x hex)</span><input id="secpK" class="wide" value="6" autocomplete="off" spellcheck="false"></label>
+    <button id="secpRun" class="btn" type="button">Compute public key</button>
+  </div>
+  <p id="secpErr" class="err" role="alert"></p>
+  <dl id="secpOut" class="secp-out"></dl>
+</section>
+
+</main>
+<footer class="wrap">
+  Toy parameters are for learning only: with p = 17 every private key can be found by trying at most 18 values. Open the browser console to see the same printout as section 2.
+</footer>
+<script>
+"use strict";
+/* =====================================================================
+   CORE MATH
+   Toy curve  E: y^2 = x^3 + a*x + b  (mod p)   — here a = 0, b = 7,
+   the same equation as Ethereum's secp256k1, but with a tiny prime p.
+   The point at infinity O (neutral element) is represented by null.
+   ===================================================================== */
+
+const INF = null;
+
+/* ---------- modular arithmetic ---------- */
+
+// Always-positive remainder (JS % keeps the sign of the dividend).
+function mod(a, p) {
+  const r = a % p;
+  return r < 0 ? r + p : r;
+}
+
+// Modular inverse with the extended Euclidean algorithm.
+// Invariant: s_i * a ≡ r_i (mod p). When r reaches gcd = 1, s is the inverse.
+function modInv(a, p) {
+  a = mod(a, p);
+  if (a === 0) throw new Error("0 has no inverse modulo " + p);
+  let r0 = p, r1 = a, s0 = 0, s1 = 1;
+  while (r1 !== 0) {
+    const q = Math.floor(r0 / r1);
+    [r0, r1] = [r1, r0 - q * r1];
+    [s0, s1] = [s1, s0 - q * s1];
+  }
+  if (r0 !== 1) throw new Error(a + " is not invertible modulo " + p);
+  return mod(s0, p);
+}
+
+function isPrime(n) {
+  if (!Number.isInteger(n) || n < 2) return false;
+  if (n % 2 === 0) return n === 2;
+  for (let d = 3; d * d <= n; d += 2) if (n % d === 0) return false;
+  return true;
+}
+
+function primeFactors(n) {
+  const f = [];
+  for (let d = 2; d * d <= n; d++) {
+    if (n % d === 0) { f.push(d); while (n % d === 0) n /= d; }
+  }
+  if (n > 1) f.push(n);
+  return f;
+}
+
+/* ---------- curve ---------- */
+
+function makeCurve(p, a, b) {
+  if (!isPrime(p)) throw new Error("p = " + p + " is not a prime number");
+  if (p <= 3) throw new Error("p must be greater than 3");
+  const A = mod(a, p), B = mod(b, p);
+  // Non-singular curve: 4a^3 + 27b^2 must not be 0 mod p
+  if (mod(4 * A * A % p * A + 27 * B * B, p) === 0) {
+    throw new Error("Singular curve: 4a³ + 27b² ≡ 0 (mod " + p + ")");
+  }
+  return { p, a: A, b: B };
+}
+
+// Right-hand side x^3 + a x + b (mod p), reduced step by step.
+function rhs(x, C) {
+  return mod(mod(x * x, C.p) * x + C.a * x + C.b, C.p);
+}
+
+function isOnCurve(P, C) {
+  if (P === INF) return true;
+  return mod(P.y * P.y, C.p) === rhs(P.x, C);
+}
+
+// All affine points of the curve (O excluded): for every x, look up the
+// square roots of x^3+7 in a precomputed table of squares.
+function enumeratePoints(C) {
+  const roots = Array.from({ length: C.p }, () => []);
+  for (let y = 0; y < C.p; y++) roots[(y * y) % C.p].push(y);
+  const pts = [];
+  for (let x = 0; x < C.p; x++) for (const y of roots[rhs(x, C)]) pts.push({ x, y });
+  return pts;
+}
+
+function eq(P, Q) {
+  if (P === INF || Q === INF) return P === Q;
+  return P.x === Q.x && P.y === Q.y;
+}
+
+function neg(P, C) {
+  return P === INF ? INF : { x: P.x, y: mod(-P.y, C.p) };
+}
+
+function pStr(P) {
+  return P === INF ? "O" : "(" + P.x + ", " + P.y + ")";
+}
+
+/* ---------- point addition (with a full trace of the computation) ----------
+   Chord-and-tangent rule:
+     P ≠ Q :  λ = (y2 − y1) / (x2 − x1)
+     P = Q :  λ = (3·x1² + a) / (2·y1)          (tangent → "doubling")
+     x3 = λ² − x1 − x2
+     y3 = λ·(x1 − x3) − y1
+   The line meets the curve again at (x3, −y3); reflecting gives P + Q.     */
+function addDetailed(P, Q, C) {
+  const p = C.p;
+  if (P === INF) return { R: Q, kind: "identity", P, Q };
+  if (Q === INF) return { R: P, kind: "identity", P, Q };
+  if (P.x === Q.x && mod(P.y + Q.y, p) === 0) {
+    // Q = −P (vertical line). Also covers doubling a point with y = 0.
+    return { R: INF, kind: "inverse", P, Q };
+  }
+  let num, den, kind;
+  if (P.x === Q.x) {               // here P.y === Q.y, so P = Q
+    num = mod(3 * P.x * P.x + C.a, p);
+    den = mod(2 * P.y, p);
+    kind = "double";
+  } else {
+    num = mod(Q.y - P.y, p);
+    den = mod(Q.x - P.x, p);
+    kind = "add";
+  }
+  const inv = modInv(den, p);
+  const lambda = mod(num * inv, p);
+  const x3 = mod(lambda * lambda - P.x - Q.x, p);
+  const y3 = mod(lambda * (P.x - x3) - P.y, p);
+  return {
+    R: { x: x3, y: y3 }, kind, P, Q, num, den, inv, lambda,
+    third: { x: x3, y: mod(-y3, p) }   // third intersection of the line
+  };
+}
+
+function add(P, Q, C) { return addDetailed(P, Q, C).R; }
+
+// Fast scalar multiplication k·P (k a non-negative Number), right-to-left
+// double-and-add: O(log k) group operations.
+function scalarMul(k, P, C) {
+  let R = INF, A = P;
+  while (k > 0) {
+    if (k % 2 === 1) R = add(R, A, C);
+    A = add(A, A, C);
+    k = Math.floor(k / 2);
+  }
+  return R;
+}
+
+/* ---------- the two algorithms requested by the homework, traced ---------- */
+
+// Method 1: repeated addition  G, 2G = G+G, 3G = 2G+G, ..., kG.
+// Needs k−1 additions: fine for small k only.
+function repeatedAdditionTrace(k, G, C) {
+  const steps = [{ n: 1, info: null, R: G }];
+  let R = G;
+  for (let n = 2; n <= k; n++) {
+    const info = addDetailed(R, G, C);
+    R = info.R;
+    steps.push({ n, info, R });
+  }
+  return { steps, result: k >= 1 ? R : INF };
+}
+
+// Method 2: left-to-right double-and-add on the binary digits of k (BigInt).
+// For each bit: R ← 2R, and if the bit is 1: R ← R + G.
+// Needs about log2(k) doublings + (number of 1 bits) additions.
+function doubleAndAddTrace(k, G, C) {
+  if (typeof k !== "bigint") k = BigInt(k);
+  if (k <= 0n) return { bits: "0", steps: [], result: INF };
+  const bits = k.toString(2);
+  const steps = [];
+  let R = INF, m = 0n;              // invariant: R = m·G
+  for (let i = 0; i < bits.length; i++) {
+    if (i > 0) {
+      const info = addDetailed(R, R, C);
+      m *= 2n; R = info.R;
+      steps.push({ op: "double", i, bit: bits[i], info, R, m });
+    }
+    if (bits[i] === "1") {
+      const info = addDetailed(R, G, C);
+      m += 1n; R = info.R;
+      steps.push({ op: i === 0 ? "start" : "add", i, bit: bits[i], info, R, m });
+    }
+  }
+  return { bits, steps, result: R };
+}
+
+/* ---------- group structure ---------- */
+
+// Order of P = smallest n > 0 with n·P = O. Since n divides the group size N
+// (Lagrange), start from N and strip prime factors while n/q · P is still O.
+function pointOrder(P, C, N) {
+  if (P === INF) return 1;
+  let ord = N;
+  for (const q of primeFactors(N)) {
+    while (ord % q === 0 && scalarMul(ord / q, P, C) === INF) ord /= q;
+  }
+  return ord;
+}
+
+/* ---------- statistics helpers ---------- */
+
+// Small seeded PRNG (mulberry32) so that every experiment is reproducible.
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function popcount(n) {
+  let c = 0;
+  while (n) { c += n & 1; n >>>= 1; }
+  return c;
+}
+
+function bitLength(n) { return n <= 0 ? 1 : Math.floor(Math.log2(n)) + 1; }
+
+function mean(a) { return a.reduce((s, v) => s + v, 0) / (a.length || 1); }
+
+function pearson(xs, ys) {
+  const n = xs.length;
+  if (n < 2) return NaN;
+  const mx = mean(xs), my = mean(ys);
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - mx, dy = ys[i] - my;
+    sxy += dx * dy; sxx += dx * dx; syy += dy * dy;
+  }
+  return sxx === 0 || syy === 0 ? NaN : sxy / Math.sqrt(sxx * syy);
+}
+
+// log Γ(z) — Lanczos approximation
+function gammaLn(z) {
+  const g = 7;
+  const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+    771.32342877765313, -176.61502916214059, 12.507343278686905,
+    -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - gammaLn(1 - z);
+  z -= 1;
+  let x = c[0];
+  for (let i = 1; i < g + 2; i++) x += c[i] / (z + i);
+  const t = z + g + 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+
+// Regularized upper incomplete gamma Q(s, x) (Numerical Recipes style)
+function gammaQ(s, x) {
+  if (x <= 0) return 1;
+  if (x < s + 1) {                     // series for P, then Q = 1 − P
+    let sum = 1 / s, term = sum;
+    for (let n = 1; n < 1000; n++) {
+      term *= x / (s + n); sum += term;
+      if (Math.abs(term) < Math.abs(sum) * 1e-15) break;
+    }
+    return 1 - sum * Math.exp(-x + s * Math.log(x) - gammaLn(s));
+  }
+  let b = x + 1 - s, c = 1e300, d = 1 / b, h = d;   // continued fraction
+  for (let i = 1; i < 1000; i++) {
+    const an = -i * (i - s);
+    b += 2;
+    d = an * d + b; if (Math.abs(d) < 1e-300) d = 1e-300;
+    c = b + an / c; if (Math.abs(c) < 1e-300) c = 1e-300;
+    d = 1 / d;
+    const del = d * c; h *= del;
+    if (Math.abs(del - 1) < 1e-15) break;
+  }
+  return Math.exp(-x + s * Math.log(x) - gammaLn(s)) * h;
+}
+
+// Pearson chi-square goodness of fit against a uniform distribution
+// over the given number of categories (counts must list every category).
+function chiSquareUniform(counts) {
+  const k = counts.length;
+  const n = counts.reduce((s, v) => s + v, 0);
+  const e = n / k;
+  let stat = 0;
+  for (const o of counts) stat += (o - e) * (o - e) / e;
+  const df = k - 1;
+  return { stat, df, pValue: df > 0 ? gammaQ(df / 2, stat / 2) : NaN, n, k };
+}
+
+// Fraction of integers in [0, p−1] whose bit j is 1 (the "fair" reference
+// when values are uniform on Z_p — not 0.5, because p is not a power of 2).
+function expectedBitFraction(p, j) {
+  let c = 0;
+  for (let v = 0; v < p; v++) if ((v >> j) & 1) c++;
+  return c / p;
+}
+
+/* ---------- experiment: run kG for many k and many base points ---------- */
+
+function runExperiment(C, bases, kList) {
+  const rows = [];
+  for (const G of bases) for (const k of kList) rows.push({ G, k, Q: scalarMul(k, G, C) });
+  return rows;
+}
+
+// Encode a finite point as one integer: x || y, each on nbits bits.
+function encodePoint(P, nbits) { return P.x * (1 << nbits) + P.y; }
+
+function computeMetrics(C, rows, support) {
+  const p = C.p, nbits = bitLength(p - 1);
+  const fin = rows.filter(r => r.Q !== INF);
+  const xCounts = new Array(p).fill(0), yCounts = new Array(p).fill(0);
+  for (const r of fin) { xCounts[r.Q.x]++; yCounts[r.Q.y]++; }
+
+  // frequency of each output point over its support (the reachable points)
+  const key = P => (P === INF ? "O" : P.x + "," + P.y);
+  const pointCounts = new Map(support.map(P => [key(P), 0]));
+  for (const r of rows) {
+    const kk = key(r.Q);
+    pointCounts.set(kk, (pointCounts.get(kk) || 0) + 1);
+  }
+
+  // bit balance per bit position
+  const bitX = [], bitY = [], bitRef = [];
+  for (let j = 0; j < nbits; j++) {
+    let cx = 0, cy = 0;
+    for (const r of fin) { cx += (r.Q.x >> j) & 1; cy += (r.Q.y >> j) & 1; }
+    bitX.push(fin.length ? cx / fin.length : NaN);
+    bitY.push(fin.length ? cy / fin.length : NaN);
+    bitRef.push(expectedBitFraction(p, j));
+  }
+  let ones = 0;
+  for (const r of fin) ones += popcount(encodePoint(r.Q, nbits));
+
+  const ks = fin.map(r => r.k), xs = fin.map(r => r.Q.x), ys = fin.map(r => r.Q.y);
+  return {
+    n: rows.length, nFinite: fin.length, nInf: rows.length - fin.length, nbits,
+    xCounts, yCounts,
+    distinctX: xCounts.filter(c => c > 0).length,
+    distinctY: yCounts.filter(c => c > 0).length,
+    distinctPoints: new Set(rows.map(r => key(r.Q))).size,
+    chiX: chiSquareUniform(xCounts),
+    chiY: chiSquareUniform(yCounts),
+    chiPoints: chiSquareUniform([...pointCounts.values()]),
+    pointCounts,
+    bitX, bitY, bitRef,
+    onesFraction: fin.length ? ones / (fin.length * 2 * nbits) : NaN,
+    corrKX: pearson(ks, xs), corrKY: pearson(ks, ys), corrXY: pearson(xs, ys)
+  };
+}
+
+// Avalanche test: flip one bit of k and count how many output bits change.
+function avalanche(C, G, kList, kbits) {
+  const nbits = bitLength(C.p - 1);
+  const outBits = 2 * nbits;
+  const hist = new Array(outBits + 1).fill(0);
+  const fracs = [];
+  let same = 0, skipped = 0;
+  for (const k of kList) {
+    const Q1 = scalarMul(k, G, C);
+    for (let i = 0; i < kbits; i++) {
+      const k2 = k ^ (1 << i);
+      const Q2 = scalarMul(k2, G, C);
+      if (Q1 === INF || Q2 === INF) { skipped++; continue; }
+      const hd = popcount(encodePoint(Q1, nbits) ^ encodePoint(Q2, nbits));
+      if (hd === 0) same++;
+      hist[hd]++;
+      fracs.push(hd / outBits);
+    }
+  }
+  return { hist, mean: mean(fracs), samples: fracs.length, same, skipped, outBits };
+}
+
+// Algebraic structure: (a+b)·G must equal a·G + b·G for every a, b.
+function homomorphismCheck(C, G, pairs) {
+  let ok = 0;
+  for (const [a, b] of pairs) if (eq(scalarMul(a + b, G, C), add(scalarMul(a, G, C), scalarMul(b, G, C), C))) ok++;
+  return { ok, total: pairs.length };
+}
+
+/* =====================================================================
+   The SAME algorithm on the real secp256k1 curve, with BigInt.
+   Educational only: not constant-time, never use it with real keys.
+   ===================================================================== */
+const SECP = {
+  p: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2Fn,
+  n: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n,
+  Gx: 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n,
+  Gy: 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8n
+};
+
+function modB(a, p) { const r = a % p; return r < 0n ? r + p : r; }
+function invB(a, p) {
+  a = modB(a, p);
+  let r0 = p, r1 = a, s0 = 0n, s1 = 1n;
+  while (r1 !== 0n) {
+    const q = r0 / r1;
+    [r0, r1] = [r1, r0 - q * r1];
+    [s0, s1] = [s1, s0 - q * s1];
+  }
+  return modB(s0, p);
+}
+function addB(P, Q, p) {
+  if (P === INF) return Q;
+  if (Q === INF) return P;
+  if (P.x === Q.x && modB(P.y + Q.y, p) === 0n) return INF;
+  const l = P.x === Q.x
+    ? modB(3n * P.x * P.x * invB(2n * P.y, p), p)
+    : modB((Q.y - P.y) * invB(Q.x - P.x, p), p);
+  const x3 = modB(l * l - P.x - Q.x, p);
+  return { x: x3, y: modB(l * (P.x - x3) - P.y, p) };
+}
+function mulB(k, P, p) {
+  let R = INF, doublings = 0, additions = 0;
+  for (const bit of k.toString(2)) {
+    if (R !== INF) { R = addB(R, R, p); doublings++; }
+    if (bit === "1") { R = addB(R, P, p); additions++; }
+  }
+  return { R, doublings, additions };
+}
+function secpPublicKey(k) {
+  if (k < 1n || k >= SECP.n) throw new Error("The private key must satisfy 1 ≤ k < n");
+  return mulB(k, { x: SECP.Gx, y: SECP.Gy }, SECP.p);
+}
+
+if (typeof module !== "undefined") {
+  module.exports = {
+    INF, mod, modInv, isPrime, primeFactors, makeCurve, rhs, isOnCurve, enumeratePoints,
+    eq, neg, pStr, addDetailed, add, scalarMul, repeatedAdditionTrace, doubleAndAddTrace,
+    pointOrder, mulberry32, popcount, bitLength, pearson, gammaQ, chiSquareUniform,
+    expectedBitFraction, runExperiment, computeMetrics, avalanche, homomorphismCheck,
+    SECP, mulB, secpPublicKey, addB
+  };
+}
+
+</script>
+<script>
+"use strict";
+/* =====================================================================
+   USER INTERFACE
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const keyOf = P => (P === INF ? "O" : P.x + "," + P.y);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = (v, d = 3) => (Number.isFinite(v) ? v.toFixed(d) : "n/a");
+const pct = (v, d = 1) => (Number.isFinite(v) ? (100 * v).toFixed(d) + "%" : "n/a");
+const pval = v => (!Number.isFinite(v) ? "n/a" : v < 1e-4 ? "< 0.0001" : v.toFixed(4));
+
+const S = { C: null, points: [], N: 0, orderOf: new Map(), G: null, ordG: 0, k: 6n };
+
+/* ---------- setup ---------- */
+
+function setupCurve(p, preferG) {
+  S.C = makeCurve(p, 0, 7);
+  S.points = enumeratePoints(S.C);
+  S.N = S.points.length + 1;
+  S.orderOf = new Map(S.points.map(P => [keyOf(P), pointOrder(P, S.C, S.N)]));
+
+  let idx = preferG ? S.points.findIndex(P => eq(P, preferG)) : -1;
+  if (idx < 0) {                       // default: a point of maximal order
+    idx = 0;
+    S.points.forEach((P, i) => { if (S.orderOf.get(keyOf(P)) > S.orderOf.get(keyOf(S.points[idx]))) idx = i; });
+  }
+  const opts = S.points.map((P, i) => `<option value="${i}">${pStr(P)}, order ${S.orderOf.get(keyOf(P))}</option>`).join("");
+  $("gSel").innerHTML = opts;
+  $("gSel").value = String(idx);
+  $("sBase").innerHTML = opts + `<option value="all">Every point, aggregated</option>`;
+  $("sBase").value = String(idx);
+}
+
+function parseBig(str, what) {
+  const s = String(str).trim().replace(/[_\s]/g, "");
+  if (!/^(0x[0-9a-fA-F]+|[0-9]+)$/.test(s)) throw new Error(`Enter ${what} as a positive whole number, in decimal or as 0x… hex.`);
+  const k = BigInt(s);
+  if (k < 1n) throw new Error(`${what[0].toUpperCase() + what.slice(1)} must be at least 1.`);
+  if (k.toString(2).length > 512) throw new Error(`Use at most 512 bits for ${what}.`);
+  return k;
+}
+
+function update() {
+  S.G = S.points[+$("gSel").value];
+  S.ordG = S.orderOf.get(keyOf(S.G));
+  try {
+    S.k = parseBig($("kIn").value, "the private key");
+    $("kErr").textContent = "";
+  } catch (e) { $("kErr").textContent = e.message; return; }
+  renderFacts();
+  renderTraces();
+  resetAnim();
+  renderDiscussion();
+}
+
+function renderFacts() {
+  const { C, G, N, ordG, k } = S;
+  const lhs = (G.y * G.y) % C.p, r = rhs(G.x, C);
+  $("facts").innerHTML = `
+    <dt>Curve</dt><dd>y² = x³ + 7 over the integers mod ${C.p}</dd>
+    <dt>Points on the curve</dt><dd>${N} (${N - 1} points (x, y) plus the point at infinity O)</dd>
+    <dt>Base point on the curve?</dt><dd>${G.y}² mod ${C.p} = ${lhs}, and ${G.x}³ + 7 mod ${C.p} = ${r} <span class="ok">${lhs === r ? "yes" : "no"}</span></dd>
+    <dt>Order of G</dt><dd>${ordG}: ${ordG}·G = O, so kG depends only on k mod ${ordG}${ordG === N ? " (G generates the whole group)" : ""}</dd>
+    <dt>Private key</dt><dd>k = ${k}${k >= BigInt(ordG) ? `, and k mod ${ordG} = ${k % BigInt(ordG)}` : ""}</dd>`;
+}
+
+/* ---------- section 2: traces ---------- */
+
+function lambdaHTML(info) {
+  if (!info) return `<span class="muted">base point</span>`;
+  if (info.kind === "identity") return `O is the neutral element: O + P = P`;
+  if (info.kind === "inverse") return `same x, opposite y: vertical line, the sum is O`;
+  const { P, Q, num, den, inv, lambda, R } = info;
+  const head = info.kind === "double"
+    ? `λ = 3·${P.x}² / (2·${P.y}) = ${num}/${den}`
+    : `λ = (${Q.y} − ${P.y}) / (${Q.x} − ${P.x}) = ${num}/${den}`;
+  return `${head} = ${num}·${inv} = ${lambda}` +
+    `<span class="xy">x = ${lambda}² − ${P.x} − ${Q.x} = ${R.x}, y = ${lambda}·(${P.x} − ${R.x}) − ${P.y} = ${R.y}</span>`;
+}
+
+function showMult(m) { const s = m.toString(); return s === "1" ? "G" : s.length <= 14 ? s + "G" : "mG"; }
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
+function renderTraces() {
+  const { C, G, k } = S;
+  const kNum = k <= 200000n ? Number(k) : null;
+  const t2 = doubleAndAddTrace(k, G, C);
+  const t1 = kNum !== null ? repeatedAdditionTrace(kNum, G, C) : null;
+  S.t1 = t1; S.t2 = t2;
+  const Q = t2.result;
+
+  // hero
+  $("heroKey").textContent = `Q = ${k.toString().length <= 12 ? k + "G" : "kG"} = ${pStr(Q)}`;
+  $("heroSub").textContent = `y² = x³ + 7 (mod ${C.p}), G = ${pStr(G)}, k = ${k.toString().length <= 24 ? k : k.toString().slice(0, 20) + "…"}`;
+
+  // printout (also sent to the browser console)
+  const lines = [
+    `Toy curve       y^2 = x^3 + 7 (mod ${C.p})`,
+    `Points          ${S.N} (including the point at infinity O)`,
+    `Base point      G = ${pStr(G)}   on curve: ${isOnCurve(G, C) ? "yes" : "no"}   order: ${S.ordG}`,
+    `Private key     k = ${k}`,
+    ``
+  ];
+  const w = String(kNum ?? 0).length;
+  if (t1) {
+    const st = t1.steps;
+    const show = st.length <= 60 ? st : [...st.slice(0, 30), null, ...st.slice(-10)];
+    for (const s of show) lines.push(s ? `${String(s.n).padStart(w)}G = ${pStr(s.R)}` : `${" ".repeat(w)}   … (${st.length - 40} more lines; the sequence repeats every ${S.ordG} steps)`);
+  } else {
+    lines.push(`k is too large to list every multiple; double-and-add used ${t2.steps.length} steps:`);
+    for (const s of t2.steps.slice(0, 12)) lines.push(`  ${s.op.padEnd(6)} R = ${pStr(s.R)}`);
+    if (t2.steps.length > 12) lines.push(`  …`);
+  }
+  lines.push(``);
+  const finalLine = `TOY PUBLIC KEY  Q = kG = ${pStr(Q)}`;
+  lines.push(finalLine);
+  $("console").innerHTML = esc(lines.join("\n")).replace(esc(finalLine), `<span class="hl">${esc(finalLine)}</span>`);
+  console.log(lines.join("\n"));
+
+  // table 1: repeated addition
+  if (t1) {
+    const st = t1.steps;
+    const rowsOf = list => list.map(s => s === null
+      ? `<tr class="gap"><td colspan="4">… ${st.length - 50} rows hidden …</td></tr>`
+      : `<tr${s.n === st.length ? ' class="final"' : ""}><td>${s.n}G</td><td>${s.n === 1 ? "start with G" : `${s.n - 1}G + G${s.info.kind === "double" ? " (doubling)" : ""}`}</td><td>${lambdaHTML(s.info)}</td><td class="res">${pStr(s.R)}</td></tr>`).join("");
+    const show = st.length <= 70 ? st : [...st.slice(0, 40), null, ...st.slice(-10)];
+    $("t1").innerHTML = `<thead><tr><th>n</th><th>Operation</th><th>Slope λ and new coordinates (mod ${C.p})</th><th>nG</th></tr></thead><tbody>${rowsOf(show)}</tbody>`;
+  } else {
+    $("t1").innerHTML = `<tbody><tr><td>k has ${k.toString().length} digits: listing all k − 1 additions is not feasible. This is exactly why double-and-add exists.</td></tr></tbody>`;
+  }
+
+  // table 2: double-and-add
+  $("bitsView").innerHTML = [...t2.bits].map(b => `<span class="${b === "1" ? "one" : ""}">${b}</span>`).join("");
+  const st2 = t2.steps;
+  const row2 = s => s === null
+    ? `<tr class="gap"><td colspan="4">… ${st2.length - 120} rows hidden …</td></tr>`
+    : `<tr${s === st2[st2.length - 1] ? ' class="final"' : ""}><td>bit ${s.i + 1} = ${s.bit}</td><td>${s.op === "start" ? "start: R = G" : s.op === "double" ? "double: R = 2R" : "add: R = R + G"}</td><td>${s.op === "start" ? `<span class="muted">first bit is always 1</span>` : lambdaHTML(s.info)}</td><td class="res">${showMult(s.m)} = ${pStr(s.R)}</td></tr>`;
+  const show2 = st2.length <= 130 ? st2 : [...st2.slice(0, 100), null, ...st2.slice(-20)];
+  $("t2").innerHTML = `<thead><tr><th>Bit of k</th><th>Operation</th><th>Slope λ and new coordinates (mod ${C.p})</th><th>R</th></tr></thead><tbody>${show2.map(row2).join("")}</tbody>`;
+
+  const dbl = st2.filter(s => s.op === "double").length, ad = st2.filter(s => s.op === "add").length;
+  const agree = t1 ? (eq(t1.result, Q) ? `<span class="ok">Both methods give ${pStr(Q)}.</span> ` : `<span class="err">The two methods disagree.</span> `) : "";
+  const m1 = t1 ? `Repeated addition used ${plural(Math.max(0, kNum - 1), "addition")}` : `Repeated addition would need about ${Number(k).toExponential(2)} additions`;
+  $("opsCompare").innerHTML = `${agree}${m1}; double-and-add used ${plural(dbl, "doubling")} and ${plural(ad, "addition")} (${plural(dbl + ad, "operation")}).`;
+}
+
+/* ---------- section 3: slow-motion animation ---------- */
+
+const A = { steps: [], i: 0, pi: 0, trail: [], playing: false, timer: null, done: false };
+
+function phasesFor(st) {
+  if (st.kind === "load" || st.info.kind === "identity") return [0, 3];
+  if (st.info.kind === "inverse") return [0, 1, 3];
+  return [0, 1, 2, 3];
+}
+
+function buildAnimSteps() {
+  const { G, C, k } = S;
+  const algo = $("algo").value;
+  const steps = [];
+  if (algo === "naive") {
+    const t = repeatedAdditionTrace(Number(k), G, C);
+    for (const s of t.steps) {
+      if (s.n === 1) steps.push({ kind: "load", R: G, label: "1G = G", pName: "G", qName: "G", rName: "G" });
+      else steps.push({ kind: "op", info: s.info, R: s.R, label: `${s.n}G = ${s.n - 1}G + G`, pName: `${s.n - 1}G`, qName: "G", rName: `${s.n}G` });
+    }
+  } else {
+    const t = doubleAndAddTrace(k, G, C);
+    for (const s of t.steps) {
+      const mN = showMult(s.m);
+      if (s.op === "start") steps.push({ kind: "load", R: G, label: `bit 1: start with R = G`, bit: s.i, pName: "G", qName: "G", rName: "G" });
+      else if (s.op === "double") steps.push({ kind: "op", info: s.info, R: s.R, bit: s.i, label: `bit ${s.i + 1}: double, ${mN} = 2·${showMult(s.m / 2n)}`, pName: showMult(s.m / 2n), qName: showMult(s.m / 2n), rName: mN });
+      else steps.push({ kind: "op", info: s.info, R: s.R, bit: s.i, label: `bit ${s.i + 1} is 1: add, ${mN} = ${showMult(s.m - 1n)} + G`, pName: showMult(s.m - 1n), qName: "G", rName: mN });
+    }
+  }
+  return steps;
+}
+
+function resetAnim() {
+  stopAnim();
+  const tooLong = S.k > 200n;
+  $("algo").querySelector('option[value="naive"]').disabled = tooLong;
+  if (tooLong) $("algo").value = "da";
+  A.steps = buildAnimSteps();
+  A.i = 0; A.pi = 0; A.trail = []; A.done = false;
+  renderAnim();
+}
+
+function stopAnim() {
+  A.playing = false;
+  clearTimeout(A.timer);
+  $("play").textContent = "Play";
+}
+
+function advance() {
+  if (A.done) return;
+  const st = A.steps[A.i];
+  const ph = phasesFor(st);
+  if (A.pi < ph.length - 1) A.pi++;
+  else {
+    A.trail = A.trail.filter(t => !eq(t.P, st.R));
+    if (st.R !== INF) A.trail.push({ P: st.R, name: st.rName });
+    if (A.i < A.steps.length - 1) { A.i++; A.pi = 0; }
+    else { A.done = true; stopAnim(); }
+  }
+  renderAnim();
+}
+
+function tick() {
+  if (!A.playing) return;
+  advance();
+  if (A.playing) A.timer = setTimeout(tick, 1500 / +$("speed").value);
+}
+
+function renderAnim() {
+  const { C } = S;
+  const p = C.p, Wd = 560, m = 38, span = Wd - 2 * m;
+  const X = x => m + x * span / (p - 1), Y = y => Wd - m - y * span / (p - 1);
+  const r = p <= 31 ? 5 : p <= 101 ? 3 : 1.7;
+  const showLabels = p <= 101;
+  const st = A.steps[A.i];
+  const phase = phasesFor(st)[A.pi];
+  const info = st.info;
+
+  let s = `<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9z" fill="var(--res)"/></marker></defs>`;
+  s += `<rect class="plot-bg" x="0" y="0" width="${Wd}" height="${Wd}"/>`;
+  if (p <= 31) for (let v = 0; v < p; v++) {
+    s += `<line class="gridline" x1="${X(v)}" y1="${Y(0)}" x2="${X(v)}" y2="${Y(p - 1)}"/><line class="gridline" x1="${X(0)}" y1="${Y(v)}" x2="${X(p - 1)}" y2="${Y(v)}"/>`;
+  }
+  s += `<line class="axis" x1="${X(0)}" y1="${Y(0)}" x2="${X(p - 1)}" y2="${Y(0)}"/><line class="axis" x1="${X(0)}" y1="${Y(0)}" x2="${X(0)}" y2="${Y(p - 1)}"/>`;
+  s += `<line class="midline" x1="${X(0)}" y1="${Y((p - 1) / 2)}" x2="${X(p - 1)}" y2="${Y((p - 1) / 2)}"/>`;
+  const ticks = p <= 31 ? [...Array(p).keys()].filter(v => v % (p <= 17 ? 1 : 2) === 0) : [0, Math.floor((p - 1) / 2), p - 1];
+  for (const v of ticks) {
+    s += `<text class="tick" x="${X(v)}" y="${Wd - m + 18}" text-anchor="middle">${v}</text>`;
+    s += `<text class="tick" x="${m - 10}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  }
+  s += `<text class="tick" x="${Wd - m + 14}" y="${Y(0) + 4}">x</text><text class="tick" x="${X(0) - 4}" y="${m - 14}">y</text>`;
+
+  for (const P of S.points) s += `<circle class="pt" cx="${X(P.x)}" cy="${Y(P.y)}" r="${r * 0.8}"/>`;
+  const busy = [];
+  if (st.kind === "op" && info.kind !== "identity") {
+    if (phase < 3) busy.push(info.P, info.Q);
+    if (info.third && phase >= 2) busy.push(info.third);
+  }
+  if (phase === 3 && st.R !== INF) busy.push(st.R);
+  for (const t of A.trail) {
+    s += `<circle class="trail" cx="${X(t.P.x)}" cy="${Y(t.P.y)}" r="${r}"/>`;
+    if (showLabels && A.trail.length <= 40 && !busy.some(B => eq(B, t.P))) s += `<text class="trail-lbl" x="${X(t.P.x) + r + 3}" y="${Y(t.P.y) + r + 12}">${esc(t.name)}</text>`;
+  }
+
+  // the "line" modulo p
+  if (st.kind === "op" && phase >= 1 && phase < 3 && info.kind !== "identity") {
+    if (info.kind === "inverse") {
+      for (let y = 0; y < p; y++) s += `<circle class="chord anim" cx="${X(info.P.x)}" cy="${Y(y)}" r="${Math.max(1.6, r * 0.7)}"/>`;
+    } else {
+      for (let x = 0; x < p; x++) s += `<circle class="chord anim" cx="${X(x)}" cy="${Y(mod(info.P.y + info.lambda * (x - info.P.x), p))}" r="${Math.max(1.6, r * 0.7)}"/>`;
+    }
+  }
+  // operands
+  if (st.kind === "op" && phase < 3 && info.kind !== "identity") {
+    const ops = info.kind === "double" ? [[info.P, st.pName]] : [[info.P, "P = " + st.pName], [info.Q, "Q = " + st.qName]];
+    if (info.kind === "double") ops[0][1] = "P = " + st.pName;
+    ops.forEach(([P, name], j) => {
+      s += `<circle class="op" cx="${X(P.x)}" cy="${Y(P.y)}" r="${r + 5}"/>`;
+      s += `<text class="op-lbl" x="${X(P.x) + (X(P.x) > Wd - 120 ? -r - 8 : r + 9)}" y="${Y(P.y) + (j ? 18 : -10)}" text-anchor="${X(P.x) > Wd - 120 ? "end" : "start"}">${esc(name)}</text>`;
+    });
+  }
+  // third intersection
+  if (st.kind === "op" && info.third && phase >= 2) {
+    const T = info.third;
+    s += `<circle class="third anim" cx="${X(T.x)}" cy="${Y(T.y)}" r="${r + 6}"/>`;
+    if (phase === 2) s += `<text class="third-lbl" x="${X(T.x) + (X(T.x) > Wd - 120 ? -r - 10 : r + 10)}" y="${Y(T.y) + 4}" text-anchor="${X(T.x) > Wd - 120 ? "end" : "start"}">third point</text>`;
+    if (phase === 3) s += `<line class="reflect anim" x1="${X(T.x)}" y1="${Y(T.y)}" x2="${X(info.R.x)}" y2="${Y(info.R.y) + (info.R.y > T.y ? r + 6 : -r - 6)}" marker-end="url(#ah)"/>`;
+  }
+  // result
+  if (phase === 3) {
+    if (st.R === INF) {
+      s += `<rect class="infbox anim" x="${Wd - 210}" y="8" width="200" height="30" rx="4"/><text class="res-lbl" x="${Wd - 110}" y="28" text-anchor="middle">${esc(st.rName)} = O (infinity)</text>`;
+    } else {
+      s += `<circle class="res anim" cx="${X(st.R.x)}" cy="${Y(st.R.y)}" r="${r + 3}"/>`;
+      s += `<text class="res-lbl" x="${X(st.R.x) + (X(st.R.x) > Wd - 140 ? -r - 8 : r + 8)}" y="${Y(st.R.y) - r - 6}" text-anchor="${X(st.R.x) > Wd - 140 ? "end" : "start"}">${esc(st.rName)} = ${pStr(st.R)}</text>`;
+    }
+  }
+  $("plot").innerHTML = s;
+
+  // bits strip for double-and-add
+  const bits = S.t2 ? S.t2.bits : "";
+  $("animBits").innerHTML = $("algo").value === "da" && bits.length <= 64
+    ? [...bits].map((b, j) => `<span class="${b === "1" ? "one" : ""}${j === st.bit ? " cur" : ""}">${b}</span>`).join("") : "";
+
+  $("narr").innerHTML = narration(st, phase);
+  $("counter").textContent = A.done
+    ? `Finished: ${A.steps.length} steps.`
+    : `Step ${A.i + 1} of ${A.steps.length}, stage ${A.pi + 1} of ${phasesFor(st).length}.`;
+  $("step").disabled = A.done;
+}
+
+function narration(st, phase) {
+  const p = S.C.p, info = st.info;
+  let h = `<p class="stephead">${esc(st.label)}</p>`;
+  if (st.kind === "load") {
+    h += `<p>Start from the base point G = ${pStr(S.G)}.</p>`;
+  } else if (info.kind === "identity") {
+    h += `<p>R is O, the neutral element, so O + G = G = ${pStr(S.G)}.</p>`;
+  } else if (phase === 0) {
+    h += info.kind === "double"
+      ? `<p>Double P = ${pStr(info.P)}: add the point to itself.</p>`
+      : `<p>Add P = ${pStr(info.P)} and Q = ${pStr(info.Q)}.</p>`;
+  } else if (phase === 1) {
+    if (info.kind === "inverse") h += `<p>P and Q have the same x and opposite y. The line through them is vertical and never meets the curve a third time.</p>`;
+    else if (info.kind === "double") h += `<p>Use the tangent at P. Its slope is</p><span class="f">λ = 3·${info.P.x}² / (2·${info.P.y}) = ${info.num} · ${info.den}⁻¹ = ${info.num} · ${info.inv} = ${info.lambda} (mod ${p})</span><p>Modulo ${p} the tangent is the set of orange dots y ≡ ${info.P.y} + ${info.lambda}(x − ${info.P.x}).</p>`;
+    else h += `<p>Draw the line through P and Q. Its slope is</p><span class="f">λ = (${info.Q.y} − ${info.P.y}) / (${info.Q.x} − ${info.P.x}) = ${info.num} · ${info.den}⁻¹ = ${info.num} · ${info.inv} = ${info.lambda} (mod ${p})</span><p>Modulo ${p} the line is the set of orange dots y ≡ ${info.P.y} + ${info.lambda}(x − ${info.P.x}).</p>`;
+  } else if (phase === 2) {
+    h += `<p>The line meets the curve in a third point:</p><span class="f">x₃ = λ² − x₁ − x₂ = ${info.R.x}, third point (${info.third.x}, ${info.third.y})</span>`;
+  }
+  if (phase === 3 && st.kind !== "load" && info.kind !== "identity") {
+    h += info.kind === "inverse"
+      ? `<p>The result is the point at infinity: ${esc(st.rName)} = O.</p>`
+      : `<p>Reflect across the middle line, y → ${p} − y = ${info.third.y} → ${info.R.y}:</p><span class="f r">${esc(st.rName)} = ${pStr(info.R)}</span>`;
+  }
+  if (A.done) h += `<p class="ok">Toy public key Q = ${pStr(S.t2.result)}.</p>`;
+  return h;
+}
+
+/* ---------- section 4: statistics ---------- */
+
+function barSVG(values, o = {}) {
+  const W = 680, H = o.h || 210, L = 46, Rp = 12, T = 14, B = 30;
+  const n = values.length, max = Math.max(1, ...values, o.ref || 0);
+  const bw = (W - L - Rp) / n, ih = H - T - B;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || "bar chart")}">`;
+  s += `<line class="axis" x1="${L}" y1="${H - B}" x2="${W - Rp}" y2="${H - B}"/>`;
+  s += `<text class="tick" x="${L - 6}" y="${T + 4}" text-anchor="end">${o.maxLabel || Math.round(max * 1000) / 1000}</text><text class="tick" x="${L - 6}" y="${H - B + 4}" text-anchor="end">0</text>`;
+  values.forEach((v, i) => {
+    const h = ih * v / max;
+    s += `<rect class="${o.cls || "bar"}" x="${L + i * bw + bw * 0.12}" y="${H - B - h}" width="${Math.max(0.8, bw * 0.76)}" height="${h}"><title>${esc(o.labels ? o.labels[i] : i)}: ${Math.round(v * 1000) / 1000}</title></rect>`;
+  });
+  if (o.ref != null) {
+    const y = H - B - ih * o.ref / max;
+    s += `<line class="refline" x1="${L}" y1="${y}" x2="${W - Rp}" y2="${y}"/><text class="tick" x="${W - Rp}" y="${y - 5}" text-anchor="end">${esc(o.refLabel || "uniform")}</text>`;
+  }
+  const idx = n <= (o.allTicksUpTo || 24) ? [...Array(n).keys()] : [0, Math.floor((n - 1) / 2), n - 1];
+  for (const i of idx) s += `<text class="tick" x="${L + (i + 0.5) * bw}" y="${H - B + 16}" text-anchor="middle">${esc(o.labels ? o.labels[i] : i)}</text>`;
+  if (o.xTitle) s += `<text class="tick" x="${W - Rp}" y="${H - 2}" text-anchor="end">${esc(o.xTitle)}</text>`;
+  return s + `</svg>`;
+}
+
+function scatterSVG(pts, xMax, yMax, o = {}) {
+  const W = 680, H = 270, L = 46, Rp = 12, T = 12, B = 32;
+  const X = v => L + (W - L - Rp) * v / Math.max(1, xMax), Y = v => H - B - (H - T - B) * v / Math.max(1, yMax);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || "scatter plot")}">`;
+  s += `<line class="axis" x1="${L}" y1="${H - B}" x2="${W - Rp}" y2="${H - B}"/><line class="axis" x1="${L}" y1="${T}" x2="${L}" y2="${H - B}"/>`;
+  for (const [a, b] of pts) s += `<circle class="dot" cx="${X(a).toFixed(1)}" cy="${Y(b).toFixed(1)}" r="2.2"/>`;
+  s += `<text class="tick" x="${L - 6}" y="${T + 6}" text-anchor="end">${yMax}</text><text class="tick" x="${L - 6}" y="${H - B + 4}" text-anchor="end">0</text>`;
+  s += `<text class="tick" x="${L}" y="${H - B + 16}">0</text><text class="tick" x="${W - Rp}" y="${H - B + 16}" text-anchor="end">${xMax}</text>`;
+  if (o.xTitle) s += `<text class="tick" x="${(L + W) / 2}" y="${H - 4}" text-anchor="middle">${esc(o.xTitle)}</text>`;
+  return s + `</svg>`;
+}
+
+async function sha256Bytes(n) {
+  const buf = new Uint8Array([(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]);
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", buf));
+}
+function hamming(a, b) { let d = 0; for (let i = 0; i < a.length; i++) d += popcount(a[i] ^ b[i]); return d; }
+
+let STAT = null, statRun = 0;
+
+async function runStats() {
+  const run = ++statRun;
+  const err = $("sErr"); err.textContent = "";
+  const K = Number($("sK").value), m = Number($("sM").value), seed = Number($("sSeed").value);
+  if (!Number.isInteger(K) || K < 10 || K > 20000) { err.textContent = "K must be a whole number between 10 and 20000."; return; }
+  if (!Number.isInteger(m) || m < 4 || m > 30) { err.textContent = "m must be a whole number between 4 and 30."; return; }
+  if (!Number.isInteger(seed) || seed < 0) { err.textContent = "The seed must be a non-negative whole number."; return; }
+
+  const { C } = S, p = C.p;
+  const mode = $("sMode").value, baseVal = $("sBase").value;
+  const agg = baseVal === "all";
+  const bases = agg ? S.points.slice() : [S.points[+baseVal]];
+  const G0 = agg ? S.G : bases[0];
+  const ord0 = S.orderOf.get(keyOf(G0));
+  const Keff = Math.max(10, Math.min(K, Math.floor(150000 / bases.length)));
+  const rng = mulberry32(seed);
+  const kList = mode === "seq"
+    ? Array.from({ length: Keff }, (_, i) => i + 1)
+    : Array.from({ length: Keff }, () => 1 + Math.floor(rng() * (2 ** m - 1)));
+
+  const rows = runExperiment(C, bases, kList);
+  let support;
+  if (agg) support = [INF, ...S.points];
+  else { support = [INF]; for (let j = 1; j < ord0; j++) support.push(scalarMul(j, G0, C)); }
+  const M = computeMetrics(C, rows, support);
+
+  const kbits = mode === "seq" ? bitLength(Keff) : m;
+  const aKs = kList.slice(0, Math.min(kList.length, 400));
+  const AV = avalanche(C, G0, aKs, kbits);
+  const pairs = Array.from({ length: 200 }, () => [1 + Math.floor(rng() * 65535), 1 + Math.floor(rng() * 65535)]);
+  const HOM = homomorphismCheck(C, G0, pairs);
+  let per = 0; for (let k = 1; k <= 100; k++) if (eq(scalarMul(k, G0, C), scalarMul(k + ord0, G0, C))) per++;
+  let negOk = 0, negTot = 0; for (let k = 1; k < Math.min(ord0, 2000); k++) { negTot++; if (eq(scalarMul(ord0 - k, G0, C), neg(scalarMul(k, G0, C), C))) negOk++; }
+  const inj = new Set(); const injTot = Math.min(ord0 - 1, 5000);
+  for (let k = 1; k <= injTot; k++) inj.add(keyOf(scalarMul(k, G0, C)));
+
+  STAT = { M, AV, HOM, per, negOk, negTot, injDistinct: inj.size, injTot, G0, ord0, agg, mode, Keff, K, kbits, kList, rows, bases, sha: null };
+  $("sSummary").textContent = `${rows.length} computations of kG: ${bases.length === 1 ? `base point ${pStr(G0)} (order ${ord0})` : `${bases.length} base points × ${Keff} values of k`}, ${mode === "seq" ? `k = 1 … ${Keff}` : `${Keff} random ${m}-bit values of k (seed ${seed})`}.` + (Keff < K ? ` K was reduced to ${Keff} to keep the run fast.` : "");
+  renderStats();
+  renderDiscussion();
+
+  // SHA-256 reference (asynchronous)
+  try {
+    const hk = kList.slice(0, 2000);
+    let ones = 0;
+    for (const k of hk) { const h = await sha256Bytes(k); for (const b of h) ones += popcount(b); }
+    const hdList = [];
+    for (const k of aKs.slice(0, 200)) {
+      const h1 = await sha256Bytes(k);
+      for (let i = 0; i < kbits; i++) hdList.push(hamming(h1, await sha256Bytes(k ^ (1 << i))) / 256);
+    }
+    if (run !== statRun) return;
+    const mu = hdList.reduce((a, b) => a + b, 0) / hdList.length;
+    const sd = Math.sqrt(hdList.reduce((a, b) => a + (b - mu) ** 2, 0) / hdList.length);
+    STAT.sha = { ones: ones / (hk.length * 256), mean: mu, sd, min: Math.min(...hdList), max: Math.max(...hdList), n: hdList.length };
+  } catch (e) {
+    if (run !== statRun) return;
+    STAT.sha = { error: "SHA-256 is not available in this browser context." };
+  }
+  renderStats();
+  renderDiscussion();
+}
+
+function renderStats() {
+  const T = STAT; if (!T) return;
+  const { M, AV, G0, ord0 } = T, C = S.C, p = C.p;
+  const uniformX = M.nFinite / p;
+  const bitsRows = M.bitX.map((bx, j) => `<tr><td>bit ${j}${j === M.nbits - 1 ? " (most significant)" : ""}</td><td><span class="meter" style="width:${(bx * 80).toFixed(1)}px"></span>${pct(bx)}</td><td><span class="meter" style="width:${(M.bitY[j] * 80).toFixed(1)}px"></span>${pct(M.bitY[j])}</td><td><span class="meter ref" style="width:${(M.bitRef[j] * 80).toFixed(1)}px"></span>${pct(M.bitRef[j])}</td></tr>`).reverse().join("");
+
+  // group structure
+  const byOrder = new Map();
+  for (const P of S.points) { const o = S.orderOf.get(keyOf(P)); if (!byOrder.has(o)) byOrder.set(o, []); byOrder.get(o).push(P); }
+  const orderRows = [[1, [INF]], ...[...byOrder.entries()].sort((a, b) => a[0] - b[0])]
+    .map(([o, list]) => `<tr><td>${o}</td><td>${list.length}</td><td>${list.length <= 12 ? list.map(pStr).join(" ") : list.slice(0, 8).map(pStr).join(" ") + " …"}</td></tr>`).join("");
+  const kBig = S.k;
+  const sameK = S.points.slice(0, 18).map(P => {
+    const o = S.orderOf.get(keyOf(P));
+    return `<tr><td>${pStr(P)}</td><td>${o}</td><td>${kBig % BigInt(o)}</td><td class="res">${pStr(doubleAndAddTrace(kBig % BigInt(o) || BigInt(o), P, C).result)}</td></tr>`;
+  }).join("");
+
+  const pointLabels = [...M.pointCounts.keys()].map(k => k === "O" ? "O" : "(" + k.replace(",", ", ") + ")");
+  const pointVals = [...M.pointCounts.values()];
+  const scatterPts = T.rows.filter(r => r.Q !== INF && eq(r.G, G0)).slice(0, 3000).map(r => [r.k, r.Q.x]);
+  const kMax = Math.max(...scatterPts.map(q => q[0]), 1);
+  const sha = T.sha;
+
+  $("sOut").innerHTML = `
+  <h3>4.1 Which points can come out: base points and their orders</h3>
+  <p>The ${S.N} points form a group. A base point of order n only ever produces n different outputs, so the choice of G matters as much as the choice of k.</p>
+  <div class="stat-grid">
+    <div class="tablewrap"><table class="trace"><thead><tr><th>Order</th><th>Points</th><th>Which ones</th></tr></thead><tbody>${orderRows}</tbody></table></div>
+    <div class="tablewrap"><table class="trace"><thead><tr><th>Base point P</th><th>Order</th><th>k mod order</th><th>k·P for k = ${kBig.toString().length <= 12 ? kBig : "your k"}</th></tr></thead><tbody>${sameK}</tbody></table></div>
+  </div>
+  ${S.points.length > 18 ? `<p class="small muted">The second table shows the first 18 of ${S.points.length} base points.</p>` : ""}
+
+  <h3>4.2 Distribution of the x and y coordinates</h3>
+  <div>
+    <figure class="chart">${barSVG(M.xCounts, { h: 180, aria: "Frequency of each x value", ref: uniformX, refLabel: "uniform on 0…" + (p - 1), xTitle: "x" })}
+      <figcaption>${M.distinctX} of ${p} possible x values appear. χ² test against "uniform on 0…${p - 1}": χ² = ${fmt(M.chiX.stat, 1)}, df = ${M.chiX.df}, p-value ${pval(M.chiX.pValue)}.</figcaption></figure>
+    <figure class="chart">${barSVG(M.yCounts, { h: 180, cls: "bar2", aria: "Frequency of each y value", ref: uniformX, refLabel: "uniform on 0…" + (p - 1), xTitle: "y" })}
+      <figcaption>${M.distinctY} of ${p} possible y values appear. χ² = ${fmt(M.chiY.stat, 1)}, df = ${M.chiY.df}, p-value ${pval(M.chiY.pValue)}. Values come in pairs y and ${p} − y.</figcaption></figure>
+  </div>
+
+  <h3>4.3 Frequency of each output point</h3>
+  <figure class="chart">${barSVG(pointVals, { cls: "bar3", labels: pointLabels, allTicksUpTo: 10, aria: "Frequency of each output point", ref: M.n / pointVals.length, refLabel: "uniform over reachable points" })}
+    <figcaption>Over the ${pointVals.length} points that ${T.agg ? "exist on the curve (O included)" : `G can reach (O and G … ${ord0 - 1}G)`}: χ² = ${fmt(M.chiPoints.stat, 2)}, df = ${M.chiPoints.df}, p-value ${pval(M.chiPoints.pValue)}. ${M.distinctPoints} distinct outputs in total, of which ${M.nInf} times O.</figcaption></figure>
+
+  <h3>4.4 Distribution of bits</h3>
+  <p>Each coordinate is written on ${M.nbits} bits. The reference column is what you would get if the value were uniform on 0…${p - 1}; it is not 50% because ${p} is not a power of two.</p>
+  <div class="tablewrap"><table class="trace"><thead><tr><th>Bit</th><th>x: share of 1s</th><th>y: share of 1s</th><th>Uniform on 0…${p - 1}</th></tr></thead><tbody>${bitsRows}</tbody></table></div>
+  <p>Over all ${2 * M.nbits} bits of (x, y): ${pct(M.onesFraction)} ones. ${sha ? (sha.error ? esc(sha.error) : `SHA-256 of the same k: ${pct(sha.ones, 2)} ones over 256 bits.`) : "Computing SHA-256 reference…"}</p>
+
+  <h3>4.5 Correlation between input and output</h3>
+  <figure class="chart">${scatterSVG(scatterPts, kMax, p - 1, { aria: "k against the x coordinate of kG", xTitle: "k (horizontal) against x of kG (vertical)" })}
+    <figcaption>Pearson correlation: r(k, x) = ${fmt(M.corrKX)}, r(k, y) = ${fmt(M.corrKY)}, r(x, y) = ${fmt(M.corrXY)}. ${T.mode === "seq" ? `With consecutive k the plot repeats every ${ord0} values: kG is periodic in k.` : ""}</figcaption></figure>
+
+  <h3>4.6 Avalanche-like behaviour</h3>
+  <p>For ${aKsCount()} values of k, flip each of the ${T.kbits} bits of k in turn and count how many of the ${AV.outBits} output bits of (x, y) change.</p>
+  <figure class="chart">${barSVG(AV.hist, { aria: "Number of output bits that change", xTitle: "output bits changed", allTicksUpTo: 30 })}
+    <figcaption>Elliptic curve: on average ${pct(AV.mean)} of output bits change (${AV.samples} pairs; ${AV.skipped} skipped because one output was O; ${AV.same} gave the same point). ${sha ? (sha.error ? "" : `SHA-256: on average ${pct(sha.mean)} of 256 bits change (standard deviation ${pct(sha.sd)}, range ${pct(sha.min)} to ${pct(sha.max)}).`) : ""}</figcaption></figure>
+  <p>The bit pattern looks scrambled, but the relation between the two outputs is fully predictable: flipping bit i of k turns Q = kG into Q ± 2ⁱG.</p>
+
+  <h3>4.7 Algebraic structure checks</h3>
+  <ul class="checks">
+    <li><span class="mark ${T.HOM.ok === T.HOM.total ? "yes" : "no"}">${T.HOM.ok}/${T.HOM.total}</span>(a + b)·G = a·G + b·G for random a, b: scalar multiplication is a group homomorphism.</li>
+    <li><span class="mark ${T.per === 100 ? "yes" : "no"}">${T.per}/100</span>k·G = (k + ${ord0})·G: the map is periodic with period ord(G) = ${ord0}.</li>
+    <li><span class="mark ${T.negOk === T.negTot ? "yes" : "no"}">${T.negOk}/${T.negTot}</span>(${ord0} − k)·G = −(k·G): pairs of keys give mirror-image public keys.</li>
+    <li><span class="mark ${T.injDistinct === T.injTot ? "yes" : "no"}">${T.injDistinct}/${T.injTot}</span>distinct outputs for k = 1 … ${T.injTot}: no two keys in that range share a public key (no collisions).</li>
+  </ul>
+
+  <h3>4.8 Sample of the experiment</h3>
+  <div class="tablewrap"><table class="trace"><thead><tr><th>Base point G</th><th>k</th><th>kG</th><th>x in binary</th><th>y in binary</th></tr></thead><tbody>
+  ${T.rows.slice(0, 12).map(r => `<tr><td>${pStr(r.G)}</td><td>${r.k}</td><td class="res">${pStr(r.Q)}</td><td>${r.Q === INF ? "" : r.Q.x.toString(2).padStart(M.nbits, "0")}</td><td>${r.Q === INF ? "" : r.Q.y.toString(2).padStart(M.nbits, "0")}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+function aKsCount() { return STAT ? Math.min(STAT.kList.length, 400) : 0; }
+
+/* ---------- section 5: discussion ---------- */
+
+function renderDiscussion() {
+  const T = STAT, C = S.C, p = C.p;
+  const ord = S.ordG;
+  const M = T ? T.M : null, sha = T && T.sha && !T.sha.error ? T.sha : null;
+  const obs = (txt) => (T ? txt : "Run the experiment in section 4.");
+  const rows = [
+    ["Deterministic, easy to compute forward",
+      `Double-and-add needs ${S.t2 ? S.t2.steps.filter(x => x.op !== "start").length : "a few"} group operations for this k, and at most about 2·256 for a real 256-bit key.`, "yes", "yes"],
+    ["Hard to invert",
+      `Not here: G has order ${ord}, so k mod ${ord} is found by trying at most ${ord} values. On secp256k1 the best known attack needs about 2¹²⁸ operations.`, "yes", "yes"],
+    ["Large prime-order subgroup",
+      `Orders on this curve: ${[...new Set(S.points.map(P => S.orderOf.get(keyOf(P))))].sort((a, b) => a - b).join(", ")}. Small factors leak k mod that factor (Pohlig–Hellman). secp256k1 has prime order n.`, "yes", "no"],
+    ["No collisions in the key range",
+      obs(`${T && T.injDistinct}/${T && T.injTot} distinct outputs for k = 1 … ord(G) − 1: the map is a bijection, collisions do not exist.`), "yes", "differs"],
+    ["Output uniform over the reachable points",
+      obs(`χ² p-value ${M && pval(M.chiPoints.pValue)}: when k is uniform, kG is uniform over the subgroup.`), "yes", "yes"],
+    ["Coordinates uniform on 0…p − 1",
+      obs(`Only ${M && M.distinctX} of ${p} x values ever appear (χ² p-value ${M && pval(M.chiX.pValue)}); y comes in ± pairs.`), "no", "yes"],
+    ["Balanced bits (50% ones)",
+      obs(`${M && pct(M.onesFraction)} ones in (x, y)${sha ? `; SHA-256 gives ${pct(sha.ones, 2)}` : ""}.`), "no", "yes"],
+    ["No correlation between input and output",
+      obs(`r(k, x) = ${M && fmt(M.corrKX)}. Low correlation is necessary but proves nothing: this toy map is uncorrelated and still trivial to invert.`), "weak", "yes"],
+    ["Avalanche effect",
+      obs(`${T && pct(T.AV.mean)} of output bits change${sha ? ` (SHA-256: ${pct(sha.mean)})` : ""}, but Q' = Q ± 2ⁱG is a predictable relation.`), "no", "yes"],
+    ["Algebraic structure (a + b)G = aG + bG",
+      obs(`Holds in ${T && T.HOM.ok}/${T && T.HOM.total} tests. It is what makes signatures and key exchange work; a hash must have no such structure.`), "needed", "must not"]
+  ];
+  const cls = v => (v === "yes" || v === "needed" ? "yes" : "no");
+  $("discBody").innerHTML = `
+  <p>Scalar multiplication k ↦ kG and a hash function such as SHA-256 or Keccak-256 are both one-way: easy forward, infeasible backward. They are built for different jobs, so they are expected to have different statistical fingerprints. The table sorts each property explored in section 4 by whether it matters for an elliptic-curve one-way function, for a cryptographic hash, or for both.</p>
+  <div class="tablewrap"><table class="disc"><thead><tr><th>Property</th><th>What this experiment shows</th><th>Needed for EC one-way function</th><th>Needed for a hash</th></tr></thead><tbody>
+  ${rows.map(r => `<tr><td>${r[0]}</td><td class="obs">${r[1]}</td><td class="${cls(r[2])}">${r[2]}</td><td class="${cls(r[3])}">${r[3]}</td></tr>`).join("")}
+  </tbody></table></div>
+
+  <h3>Properties that are meaningful for the elliptic-curve one-way function</h3>
+  <p>Security rests on one computational fact: given Q and G, finding k (the ECDLP) is infeasible. What makes it infeasible is size and structure, not statistics. The subgroup generated by G must have a huge prime order. On this toy curve G = ${pStr(S.G)} has order ${ord}, so the only information about k that survives is k mod ${ord}, and a brute-force search ends after at most ${ord} tries. The base points of this curve have orders ${[...new Set(S.points.map(P => S.orderOf.get(keyOf(P))))].sort((a, b) => a - b).join(", ")}; a point of order 2, for example, reveals only whether k is even. secp256k1 is chosen so that the group order n is a 256-bit prime, which leaves no small factor to exploit, and the best generic attack (Pollard's rho) needs about √n ≈ 2¹²⁸ steps.</p>
+  <p>Two statistical observations are relevant. First, on the range 1 … n − 1 the map is a bijection, so there are no collisions and the period of kG equals the order of G (section 4.7). Second, if k is chosen uniformly at random, then kG is uniform over the subgroup (section 4.3, χ² p-value close to 1 with consecutive k). This is the "uniformity" that matters for keys: every public key is equally likely, so the public key alone says nothing about which private key produced it. Low correlation between k and the coordinates is consistent with this but is a weak signal: the toy curve passes the correlation test while being trivially breakable, so passing simple statistical tests never demonstrates one-wayness.</p>
+
+  <h3>Properties that belong to cryptographic hash functions</h3>
+  <p>A hash maps inputs of any length to a fixed-length string that should be indistinguishable from random bits. That is why balanced bits, uniformity of every output bit, the avalanche effect (≈50% of bits change for a one-bit change, as SHA-256 shows above) and collision resistance are hash requirements. Collisions must exist for a hash, because it compresses; they only have to be hard to find.</p>
+  <p>Elliptic-curve outputs do not and need not satisfy these. Coordinates are not uniform on 0…p − 1: only x values for which x³ + 7 is a square can appear (about half of them), and y always comes paired with p − y. Bit balance is distorted both by this and by p not being a power of two. The avalanche numbers can look decent, but they hide an exact algebraic relation: flipping bit i of k changes the output from Q to Q ± 2ⁱG. Most importantly, scalar multiplication is a homomorphism, (a + b)G = aG + bG. ECDSA signatures, ECDH key exchange and hierarchical wallets all depend on that structure. For a hash it would be a catastrophic weakness.</p>
+  <div class="callout">In Ethereum both tools appear in sequence, each for its own job: the private key k gives the public key Q = kG on secp256k1 (one-way, with algebraic structure), and the address is the last 20 bytes of Keccak-256(Q) (a hash, structure removed, fixed length). Protocols that need random-looking bits from a curve point, such as deriving a symmetric key from an ECDH shared point, likewise hash the point first.</div>
+  <p class="small muted">Limits of this experiment: with p = ${p} the samples cover tiny sets, so tests of uniformity mostly reveal the group structure. Larger primes in section 1 make the coordinate plots look more random, but no statistical test can show that a function is hard to invert.</p>`;
+}
+
+/* ---------- section 6: secp256k1 ---------- */
+
+function runSecp() {
+  const err = $("secpErr");
+  try {
+    const k = parseBig($("secpK").value, "the private key");
+    const t0 = performance.now();
+    const { R, doublings, additions } = secpPublicKey(k);
+    const ms = performance.now() - t0;
+    const hx = R.x.toString(16).padStart(64, "0"), hy = R.y.toString(16).padStart(64, "0");
+    err.textContent = "";
+    $("secpOut").innerHTML = `
+      <dt>Private key k</dt><dd>${k} (0x${k.toString(16)})</dd>
+      <dt>Public key Q = kG, x coordinate</dt><dd>0x${hx}</dd>
+      <dt>Public key Q = kG, y coordinate</dt><dd>0x${hy}</dd>
+      <dt>Uncompressed encoding (04 ‖ x ‖ y), the input Ethereum hashes with Keccak-256 (without the 04)</dt><dd>04${hx}${hy}</dd>
+      <dt>Work done</dt><dd>${doublings} doublings + ${additions} additions in ${ms.toFixed(1)} ms</dd>`;
+  } catch (e) { err.textContent = e.message; $("secpOut").innerHTML = ""; }
+}
+
+/* ---------- wiring ---------- */
+
+let statDebounce = null;
+function scheduleStats() { clearTimeout(statDebounce); statDebounce = setTimeout(runStats, 150); }
+
+$("pSel").addEventListener("change", () => {
+  const p = +$("pSel").value;
+  setupCurve(p, p === 17 ? { x: 1, y: 5 } : null);
+  update(); scheduleStats();
+});
+$("gSel").addEventListener("change", () => { $("sBase").value = $("gSel").value; update(); scheduleStats(); });
+$("kIn").addEventListener("input", () => { update(); if (STAT) renderStats(); });
+$("randK").addEventListener("click", () => {
+  const b = new Uint32Array(2); crypto.getRandomValues(b);
+  $("kIn").value = ((BigInt(b[0]) << 32n) | BigInt(b[1]) | 1n).toString();
+  update(); if (STAT) renderStats();
+});
+$("algo").addEventListener("change", resetAnim);
+$("play").addEventListener("click", () => {
+  if (A.playing) { stopAnim(); return; }
+  if (A.done) resetAnim();
+  A.playing = true; $("play").textContent = "Pause";
+  tick();
+});
+$("step").addEventListener("click", () => { stopAnim(); advance(); });
+$("reset").addEventListener("click", resetAnim);
+$("sRun").addEventListener("click", runStats);
+$("secpRun").addEventListener("click", runSecp);
+
+setupCurve(17, { x: 1, y: 5 });
+update();
+runStats();
+runSecp();
+
+</script>
+</body>
+</html>
