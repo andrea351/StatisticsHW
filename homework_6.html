@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Homework 6 – Contingency tables and the chi-square test of independence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" onload="renderMath()"></script>
+<style>
+:root {
+  --paper: #F5F6F8; --surface: #FFFFFF; --ink: #1A2230; --muted: #5B6577;
+  --line: #DDE1E8; --accent: #2B59C3; --accent-soft: #E7ECF8; --teal: #0E7C7B;
+  --warn: #B4441F; --code-bg: #F0F2F6;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --pos: #2a78d6; --neg: #e34948;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #12161D; --surface: #1A2029; --ink: #E4E8EF; --muted: #98A2B3;
+    --line: #2C3440; --accent: #7EA2F2; --accent-soft: #1F2A40; --teal: #4FC1BF;
+    --warn: #F08A64; --code-bg: #141920;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+    --pos: #3987e5; --neg: #e66767;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #12161D; --surface: #1A2029; --ink: #E4E8EF; --muted: #98A2B3;
+  --line: #2C3440; --accent: #7EA2F2; --accent-soft: #1F2A40; --teal: #4FC1BF;
+  --warn: #F08A64; --code-bg: #141920;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+  --pos: #3987e5; --neg: #e66767;
+  color-scheme: dark;
+}
+:root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 13.5px/1.6 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1 { font-size: 22px; line-height: 1.25; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
+h2 { font-size: 16px; line-height: 1.3; font-weight: 600; margin: 34px 0 10px; }
+h3 { font-size: 13.5px; font-weight: 600; margin: 20px 0 6px; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+code, .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; }
+.small, figcaption, .note { font-size: 12px; color: var(--muted); }
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 20px 64px; }
+.prose { max-width: 70ch; }
+.katex { font-size: 1.04em; }
+.katex-display { margin: 10px 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+
+.page-head { padding-top: 36px; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+.page-head .course { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.task { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 4px; padding: 10px 14px; margin: 16px 0 0; font-size: 12.5px; }
+.task p:last-child { margin: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; margin: 12px 0; }
+.result { border-left: 3px solid var(--teal); }
+pre.code { background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; overflow-x: auto; margin: 10px 0; line-height: 1.55; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; }
+pre.code .c { color: var(--muted); }
+pre.code .k { color: var(--accent); }
+.tbl { overflow-x: auto; margin: 8px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 12px; }
+caption { caption-side: top; text-align: left; font-size: 12px; font-weight: 600; color: var(--ink); padding: 0 0 4px; }
+th, td { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th { font-weight: 500; color: var(--muted); border-bottom-color: var(--muted); }
+td { font-family: "IBM Plex Mono", monospace; }
+th:first-child, td:first-child { text-align: left; }
+td.lab { font-family: "IBM Plex Sans", system-ui, sans-serif; color: var(--muted); }
+tr.tot td, td.tot { font-weight: 500; }
+tr.tot td { border-top: 1px solid var(--muted); }
+td.txt { font-family: "IBM Plex Sans", system-ui, sans-serif; text-align: left; }
+td.bad { color: var(--warn); }
+tr.hl td { background: var(--accent-soft); }
+.controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 14px; align-items: end; }
+.controls label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+label.check { flex-direction: row !important; align-items: center; gap: 6px !important; }
+input, select, button, textarea { font: inherit; font-size: 12.5px; color: var(--ink); }
+input, select, textarea { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; width: 100%; }
+input[type="checkbox"] { width: auto; }
+input[type="range"] { padding: 0; accent-color: var(--accent); }
+textarea { font-family: "IBM Plex Mono", monospace; font-size: 12px; min-height: 150px; resize: vertical; }
+button { background: var(--accent); color: #fff; border: 0; border-radius: 4px; padding: 6px 14px; cursor: pointer; font-weight: 500; }
+:root[data-theme="dark"] button { color: #10151d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button { color: #10151d; } }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+figure { margin: 14px 0; position: relative; }
+figure canvas { display: block; width: 100%; min-width: 0; height: 240px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.grid2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; }
+@media (max-width: 700px) { .grid2 { grid-template-columns: minmax(0,1fr); } }
+.key { display: inline-flex; align-items: center; gap: 5px; margin-right: 12px; white-space: nowrap; font-size: 12px; color: var(--muted); }
+.sw { display: inline-block; width: 14px; height: 0; border-top: 2px solid; vertical-align: middle; }
+.sw.dash { border-top-style: dashed; }
+.blk { display: inline-block; width: 11px; height: 11px; border-radius: 2px; }
+.legend { margin: 6px 0 2px; }
+.status { font-size: 12px; color: var(--muted); margin-left: 8px; }
+.err { color: var(--warn); font-size: 12px; }
+ul.tight { padding-left: 18px; margin: 4px 0 10px; }
+ul.tight li { margin-bottom: 4px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 10px 0; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.stat .v { font-family: "IBM Plex Mono", monospace; font-size: 15px; font-weight: 500; }
+.stat .l { font-size: 11.5px; color: var(--muted); }
+.verdict { font-weight: 600; }
+.refs { font-size: 12px; color: var(--muted); margin-top: 30px; border-top: 1px solid var(--line); padding-top: 10px; }
+.refs p { margin: 0 0 4px; }
+.tip { position: fixed; z-index: 50; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px; font-size: 12px; line-height: 1.45; box-shadow: 0 2px 8px rgba(0,0,0,.12); max-width: 260px; }
+.tip b { font-weight: 600; }
+.res-cell { font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="tip" id="tip" hidden></div>
+
+<main class="wrap">
+  <header class="page-head">
+    <p class="course">Statistics, Andrea Giuliotti</p>
+    <h1>Homework 6 – Contingency tables and the chi-square test of independence</h1>
+    <div class="task">
+      <p>Given any bivariate dataset (X, F), programmatically construct the contingency table and calculate conditional and marginal frequencies. Compute the expected frequencies under the assumption of independence and the chi-square statistic (optionally the p-value). Recall the theoretical concepts of independence in statistics and probability, interpret the results to decide whether the two variables are independent or dependent, and discuss the conclusions, distinguishing statistical association from causality.</p>
+    </div>
+  </header>
+
+  <div class="prose">
+  <h2>Independence: the theory</h2>
+  <h3>In probability</h3>
+  <p>Two events \(A\) and \(B\) are independent when \(P(A \cap B) = P(A)\,P(B)\). If \(P(A) > 0\) this is the same as \(P(B \mid A) = P(B)\): knowing that \(A\) happened does not change the probability of \(B\).</p>
+  <p>Two discrete random variables \(X\) and \(F\), with values \(x_1,\dots,x_r\) and \(f_1,\dots,f_c\), are independent when every pair of events \(\{X = x_i\}\) and \(\{F = f_j\}\) is independent:</p>
+  \[ p_{ij} = P(X = x_i,\ F = f_j) = P(X = x_i)\,P(F = f_j) = p_{i\cdot}\,p_{\cdot j} \qquad \text{for all } i, j . \]
+  <p>Equivalently, every conditional distribution equals the marginal one: \(P(F = f_j \mid X = x_i) = p_{\cdot j}\) for every \(i\). The joint distribution then carries no information beyond its two marginals. Independence is a property of the whole joint distribution, not of single cells; and for numerical variables it is stronger than zero correlation, which only rules out a linear relation.</p>
+
+  <h3>In a sample</h3>
+  <p>On \(n\) observed pairs the probabilities are replaced by frequencies. With \(n_{ij}\) the number of pairs \((x_i, f_j)\) and the marginal totals \(n_{i\cdot} = \sum_j n_{ij}\), \(n_{\cdot j} = \sum_i n_{ij}\):</p>
+  \[ \text{joint } \frac{n_{ij}}{n}, \qquad \text{marginal } \frac{n_{i\cdot}}{n},\ \frac{n_{\cdot j}}{n}, \qquad \text{conditional } \frac{n_{ij}}{n_{i\cdot}} \ (F \text{ given } X = x_i), \quad \frac{n_{ij}}{n_{\cdot j}} \ (X \text{ given } F = f_j). \]
+  <p>The two variables are <em>statistically independent in the sample</em> when all the conditional distributions of \(F\) (the row profiles) coincide, and therefore coincide with the marginal of \(F\). That happens exactly when every cell equals the <b>expected frequency</b></p>
+  \[ E_{ij} = \frac{n_{i\cdot}\, n_{\cdot j}}{n}, \]
+  <p>the count the cell would have if the joint frequency were the product of the marginal frequencies. With real data this equality essentially never holds exactly, even when the underlying variables are independent, because of sampling noise. The question becomes: are the differences \(n_{ij} - E_{ij}\) larger than noise can explain?</p>
+
+  <h3>The chi-square statistic</h3>
+  <p>Pearson’s statistic adds up the squared differences, each scaled by the expected count:</p>
+  \[ \chi^2 = \sum_{i=1}^{r}\sum_{j=1}^{c} \frac{(n_{ij} - E_{ij})^2}{E_{ij}} = n\Bigl(\sum_{i,j}\frac{n_{ij}^2}{n_{i\cdot}\,n_{\cdot j}} - 1\Bigr). \]
+  <p>It is 0 only under perfect sample independence and reaches its maximum \(n\,(\min(r,c)-1)\) under perfect dependence (each row profile concentrated on its own column). Because it grows with \(n\), its size is measured on the scale of Cramér’s \(V = \sqrt{\chi^2 / \bigl(n(\min(r,c)-1)\bigr)} \in [0,1]\). The terms \(r_{ij} = (n_{ij}-E_{ij})/\sqrt{E_{ij}}\), the Pearson residuals, show which cells drive the statistic: \(\chi^2 = \sum r_{ij}^2\).</p>
+
+  <h3>The test</h3>
+  <p>Assume the \(n\) pairs are an i.i.d. sample and take as null hypothesis \(H_0\): \(X\) and \(F\) are independent. Under \(H_0\), as \(n\) grows the statistic follows a chi-square distribution with</p>
+  \[ \nu = (r-1)(c-1) \]
+  <p>degrees of freedom: the table has \(rc - 1\) free cells (the total is fixed), and estimating the marginals uses \(r-1\) and \(c-1\) of them, leaving \(rc - 1 - (r-1) - (c-1) = (r-1)(c-1)\). The p-value is the probability, under \(H_0\), of a statistic at least as large as the observed one, \(p = P(\chi^2_\nu \ge \chi^2_{\text{obs}})\). If \(p < \alpha\) (usually 0.05), equivalently if \(\chi^2_{\text{obs}}\) exceeds the critical value \(\chi^2_{\nu,1-\alpha}\), independence is rejected. The approximation is reliable when the expected counts are not too small; the usual rule (Cochran) asks for every \(E_{ij} \ge 1\) and at most 20% of them below 5. When it fails, the p-value can be computed by a permutation test, as this page also does.</p>
+  </div>
+
+  <h2>Code</h2>
+  <p class="prose">The construction needs no library: the table is built by counting the pairs, and only the p-value uses the chi-square survival function from SciPy. The page runs the same algorithm in JavaScript (with its own implementation of the incomplete gamma function for the p-value) on whichever dataset you select below.</p>
+<pre class="code"><span class="k">from</span> collections <span class="k">import</span> Counter
+<span class="k">from</span> scipy.stats <span class="k">import</span> chi2                    <span class="c"># only for the p-value</span>
+
+<span class="k">def</span> contingency(records):                       <span class="c"># records: list of (x, f) pairs</span>
+    X = list(dict.fromkeys(x <span class="k">for</span> x, _ <span class="k">in</span> records))    <span class="c"># levels in order of appearance</span>
+    F = list(dict.fromkeys(f <span class="k">for</span> _, f <span class="k">in</span> records))
+    c = Counter(records)
+    n = [[c[(x, f)] <span class="k">for</span> f <span class="k">in</span> F] <span class="k">for</span> x <span class="k">in</span> X]           <span class="c"># n[i][j] = count of (X[i], F[j])</span>
+    <span class="k">return</span> X, F, n
+
+<span class="k">def</span> frequencies(n):
+    N = sum(map(sum, n))
+    row = [sum(r) <span class="k">for</span> r <span class="k">in</span> n]                           <span class="c"># marginal totals of X</span>
+    col = [sum(c) <span class="k">for</span> c <span class="k">in</span> zip(*n)]                     <span class="c"># marginal totals of F</span>
+    joint  = [[v / N <span class="k">for</span> v <span class="k">in</span> r] <span class="k">for</span> r <span class="k">in</span> n]
+    f_of_x = [[v / row[i] <span class="k">for</span> v <span class="k">in</span> r] <span class="k">for</span> i, r <span class="k">in</span> enumerate(n)]          <span class="c"># F | X</span>
+    x_of_f = [[n[i][j] / col[j] <span class="k">for</span> j <span class="k">in</span> range(len(col))] <span class="k">for</span> i <span class="k">in</span> range(len(row))]  <span class="c"># X | F</span>
+    <span class="k">return</span> row, col, N, joint, f_of_x, x_of_f
+
+<span class="k">def</span> chi_square(n):
+    row, col, N = frequencies(n)[:3]
+    E = [[row[i] * col[j] / N <span class="k">for</span> j <span class="k">in</span> range(len(col))] <span class="k">for</span> i <span class="k">in</span> range(len(row))]
+    stat = sum((n[i][j] - E[i][j]) ** 2 / E[i][j] <span class="k">for</span> i <span class="k">in</span> range(len(row)) <span class="k">for</span> j <span class="k">in</span> range(len(col)))
+    df = (len(row) - 1) * (len(col) - 1)
+    <span class="k">return</span> stat, df, chi2.sf(stat, df), E</pre>
+
+  <h2>Data</h2>
+  <div class="panel">
+    <div class="controls">
+      <label style="grid-column: span 2;">Dataset
+        <select id="d-sel">
+          <option value="titanic">Titanic: class × survival</option>
+          <option value="hair">Hair colour × eye colour</option>
+          <option value="berkeley">UC Berkeley 1973: gender × admission</option>
+          <option value="sim">Simulated security alerts: attack × outcome</option>
+          <option value="own">Your own data</option>
+        </select>
+      </label>
+      <label>Significance level α
+        <select id="d-alpha"><option value="0.01">0.01</option><option value="0.05" selected>0.05</option><option value="0.1">0.10</option></select>
+      </label>
+    </div>
+    <div id="sim-ctl" class="controls" style="margin-top:10px" hidden>
+      <label>Records n<input id="s-n" type="number" min="50" max="20000" step="50" value="1000"></label>
+      <label>Dependence λ: <span id="s-lam-v">0</span><input id="s-lam" type="range" min="0" max="1" step="0.05" value="0"></label>
+      <label>Seed<input id="s-seed" value="hw6"></label>
+      <div><button id="s-run" type="button">Generate new sample</button></div>
+    </div>
+    <div id="own-ctl" style="margin-top:10px" hidden>
+      <label class="small" for="o-text" style="display:block;margin-bottom:4px">One record per line: <code>x, f</code>, or <code>x, f, count</code> for pre-aggregated data. Separators: comma, semicolon or tab.</label>
+      <textarea id="o-text" spellcheck="false"></textarea>
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:8px">
+        <label class="check small"><input type="checkbox" id="o-head" checked> First line is a header</label>
+        <button id="o-run" type="button">Analyse</button>
+        <span class="err" id="o-err"></span>
+      </div>
+    </div>
+    <p class="small" id="d-desc" style="margin:10px 0 0"></p>
+  </div>
+  <p class="small" id="rec-cap" style="margin:14px 0 0;color:var(--ink);font-weight:600"></p>
+  <div class="tbl"><table id="t-records"></table></div>
+
+  <h2>Contingency table and frequencies</h2>
+  <div class="grid2">
+    <div class="tbl"><table id="t-counts"></table></div>
+    <div class="tbl"><table id="t-joint"></table></div>
+  </div>
+  <div class="grid2">
+    <div class="tbl"><table id="t-fx"></table></div>
+    <div class="tbl"><table id="t-xf"></table></div>
+  </div>
+
+  <h3>Conditional distributions compared with the marginal</h3>
+  <div class="panel" style="padding:10px 14px">
+    <div class="controls" style="grid-template-columns: minmax(0, 260px);">
+      <label>Profiles<select id="p-dir"><option value="row">F given each value of X (row profiles)</option><option value="col">X given each value of F (column profiles)</option></select></label>
+    </div>
+  </div>
+  <div class="legend" id="p-legend"></div>
+  <figure style="margin-top:4px"><canvas id="c-prof"></canvas><figcaption>Each bar is one conditional distribution; the last bar, “All”, is the marginal. Under independence all bars would look like the last one. Hover a segment for its count.</figcaption></figure>
+
+  <h2>Expected frequencies under independence</h2>
+  <div class="grid2">
+    <div class="tbl"><table id="t-exp"></table></div>
+    <div class="tbl"><table id="t-res"></table></div>
+  </div>
+  <p class="small"><span class="key"><span class="blk" style="background:var(--pos);opacity:.6"></span>more than expected</span><span class="key"><span class="blk" style="background:var(--neg);opacity:.6"></span>fewer than expected</span>Colour intensity is proportional to |r|. Each cell of the residual table shows r and, in brackets, its contribution r² to χ².</p>
+  <p class="small" id="exp-check"></p>
+
+  <h2>Chi-square statistic and p-value</h2>
+  <div class="stats" id="stats"></div>
+  <div class="panel result" id="verdict"></div>
+  <div class="grid2">
+    <figure><canvas id="c-chi"></canvas><figcaption><span class="key"><span class="sw" style="border-color:var(--ink)"></span>χ² density, ν d.o.f.</span><span class="key"><span class="sw dash" style="border-color:var(--warn)"></span>critical value</span><span class="key"><span class="sw" style="border-color:var(--accent)"></span>observed χ² (shaded: p-value)</span></figcaption></figure>
+    <figure><canvas id="c-perm"></canvas><figcaption><span class="key"><span class="blk" style="background:var(--teal);opacity:.55"></span>χ² of permuted data</span><span class="key"><span class="sw dash" style="border-color:var(--ink)"></span>χ² density</span>Permutation test: the F labels are shuffled among the records, which keeps both marginals and destroys any association. Hover a bar for its range.</figcaption></figure>
+  </div>
+  <p class="small" id="perm-note"></p>
+
+  <div class="prose">
+  <h2>Association is not causation</h2>
+  <p>A significant chi-square says that the two variables are <em>associated</em>: the distribution of one changes with the value of the other. It does not say why. The statistic is symmetric in \(X\) and \(F\), so it cannot even tell which variable could act on the other, and the association can come from a third variable that affects both. The admissions data of the University of California, Berkeley (fall 1973), which Bickel, Hammel and O’Connell analysed in 1975 after the university was worried about sex bias, is the standard example.</p>
+  </div>
+  <div class="tbl"><table id="t-berk"></table></div>
+  <div class="prose">
+  <p id="berk-text"></p>
+  <p>The variable behind the paradox is the department. Women applied mostly to departments with low admission rates (C to F), men mostly to departments with high ones (A and B). Department is related to both gender (through the choice of where to apply) and admission, so it produces an association between them in the pooled table even though, inside each department, gender has little or no effect. This reversal of a pooled association when the data are split by a third variable is Simpson’s paradox.</p>
+  <p>Other ways an association can arise without causation:</p>
+  <ul class="tight">
+    <li><b>Reverse causation.</b> The dependence may run from F to X rather than from X to F; the table looks the same either way.</li>
+    <li><b>Selection.</b> If the records were collected in a way that depends on both variables (only reported incidents, only survivors who answered), the sample can show associations that the population does not have.</li>
+    <li><b>Chance and multiple testing.</b> At α = 0.05, one test in twenty on independent variables rejects anyway. The simulated dataset with λ = 0 shows this: try several seeds.</li>
+  </ul>
+  <p>Two further cautions about reading the test itself. A small p-value is not a large effect: with thousands of records a weak association becomes highly significant, which is why Cramér’s V is reported next to it. And a large p-value is not proof of independence, only lack of evidence against it, which may simply reflect a small sample. To claim causation one needs a design that breaks the link with other variables, such as a randomised experiment, or an explicit causal model whose assumptions are stated and defended; stratifying by known confounders, as in the Berkeley table, is the first step in that direction.</p>
+
+  <h2>Conclusions</h2>
+  <div class="panel result" id="concl"></div>
+  </div>
+
+  <div class="refs">
+    <p>K. Pearson, “On the criterion that a given system of deviations from the probable…”, <i>Philosophical Magazine</i> 50 (1900). R. A. Fisher, “On the interpretation of χ² from contingency tables”, <i>J. Royal Statistical Society</i> 85 (1922). W. G. Cochran, “Some methods for strengthening the common χ² tests”, <i>Biometrics</i> 10 (1954).</p>
+    <p>Data: R. J. M. Dawson, “The ‘unusual episode’ data revisited”, <i>J. Statistics Education</i> 3 (1995) (Titanic); R. D. Snee, “Graphical display of two-way contingency tables”, <i>The American Statistician</i> 28 (1974) (hair and eye colour); P. J. Bickel, E. A. Hammel, J. W. O’Connell, “Sex bias in graduate admissions: data from Berkeley”, <i>Science</i> 187 (1975). The simulated dataset is generated in the page.</p>
+    <p>All numbers on this page were cross-checked against <code>scipy.stats.chi2_contingency</code>.</p>
+  </div>
+</main>
+
+<script>
+/* ================= shared helpers ================= */
+function renderMath(root) {
+  if (!window.renderMathInElement) return;
+  renderMathInElement(root || document.body, {
+    delimiters: [{ left: "\\[", right: "\\]", display: true }, { left: "\\(", right: "\\)", display: false }],
+    throwOnError: false
+  });
+}
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const minus = s => String(s).replace(/-/g, "−");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const int = v => Math.round(v).toLocaleString("en-US");
+function num(v, s = 4) {
+  if (!isFinite(v)) return isNaN(v) ? "—" : "∞";
+  const a = Math.abs(v);
+  if (a !== 0 && (a < 1e-4 || a >= 1e7)) return minus(v.toExponential(s - 1).replace("e+", "e"));
+  return minus((+v.toPrecision(s)).toString());
+}
+const fix = (v, d) => minus(v.toFixed(d));
+const pct = v => (100 * v).toFixed(1) + "%";
+function pfmt(p) {
+  if (p === 0) return "< 1e−300";
+  if (p < 1e-4) return minus(p.toExponential(2).replace("e+", "e"));
+  return p.toFixed(4);
+}
+
+/* seeded RNG */
+function cyrb128(str) {
+  let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+  for (let i = 0, k; i < str.length; i++) {
+    k = str.charCodeAt(i);
+    h1 = h2 ^ Math.imul(h1 ^ k, 597399067); h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+    h3 = h4 ^ Math.imul(h3 ^ k, 951274213); h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+  }
+  h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067); h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+  h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213); h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+  h1 ^= (h2 ^ h3 ^ h4); h2 ^= h1; h3 ^= h1; h4 ^= h1;
+  return [h1 >>> 0, h2 >>> 0, h3 >>> 0, h4 >>> 0];
+}
+function sfc32(a, b, c, d) {
+  return function () {
+    a |= 0; b |= 0; c |= 0; d |= 0;
+    let t = (a + b | 0) + d | 0; d = d + 1 | 0;
+    a = b ^ b >>> 9; b = c + (c << 3) | 0; c = (c << 21 | c >>> 11); c = c + t | 0;
+    return (t >>> 0) / 4294967296;
+  };
+}
+function makeRng(seed) { const r = sfc32(...cyrb128(String(seed))); for (let i = 0; i < 20; i++) r(); return r; }
+
+/* ================= chi-square distribution ================= */
+function lgamma(x) {
+  const g = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
+    12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lgamma(1 - x);
+  x -= 1; let a = g[0]; const t = x + 7.5;
+  for (let i = 1; i < 9; i++) a += g[i] / (x + i);
+  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+}
+function gammaPseries(a, x) {          // regularized lower incomplete gamma, series
+  let ap = a, del = 1 / a, sum = del;
+  for (let n = 0; n < 1000; n++) { ap += 1; del *= x / ap; sum += del; if (Math.abs(del) < Math.abs(sum) * 1e-16) break; }
+  return sum * Math.exp(-x + a * Math.log(x) - lgamma(a));
+}
+function gammaQcf(a, x) {              // regularized upper incomplete gamma, continued fraction (Lentz)
+  const tiny = 1e-300; let b = x + 1 - a, c = 1 / tiny, d = 1 / b, h = d;
+  for (let i = 1; i < 1000; i++) {
+    const an = -i * (i - a); b += 2;
+    d = an * d + b; if (Math.abs(d) < tiny) d = tiny;
+    c = b + an / c; if (Math.abs(c) < tiny) c = tiny;
+    d = 1 / d; const del = d * c; h *= del;
+    if (Math.abs(del - 1) < 1e-16) break;
+  }
+  return Math.exp(-x + a * Math.log(x) - lgamma(a)) * h;
+}
+function chi2sf(x, k) {                // P(chi2_k >= x)
+  if (x <= 0) return 1;
+  const a = k / 2, z = x / 2;
+  return z < a + 1 ? 1 - gammaPseries(a, z) : gammaQcf(a, z);
+}
+function chi2pdf(x, k) { if (x <= 0) return k === 2 ? 0.5 : (k < 2 ? Infinity : 0); return Math.exp((k / 2 - 1) * Math.log(x) - x / 2 - (k / 2) * Math.LN2 - lgamma(k / 2)); }
+function chi2crit(alpha, k) {          // x with P(chi2_k >= x) = alpha, by bisection
+  let lo = 0, hi = k + 40 * Math.sqrt(2 * k) + 60;
+  for (let i = 0; i < 200; i++) { const m = (lo + hi) / 2; if (chi2sf(m, k) > alpha) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+
+/* ================= core: table, frequencies, chi-square ================= */
+// records: array of {x, f, w}; w = 1 for raw records
+function buildContingencyTable(records, xOrder, fOrder) {
+  const X = xOrder ? [...xOrder] : [], F = fOrder ? [...fOrder] : [];
+  const xi = new Map(X.map((v, i) => [v, i])), fi = new Map(F.map((v, i) => [v, i]));
+  for (const r of records) {
+    if (!xi.has(r.x)) { xi.set(r.x, X.length); X.push(r.x); }
+    if (!fi.has(r.f)) { fi.set(r.f, F.length); F.push(r.f); }
+  }
+  const n = X.map(() => F.map(() => 0));
+  for (const r of records) n[xi.get(r.x)][fi.get(r.f)] += r.w;
+  const row = n.map(r => r.reduce((a, b) => a + b, 0));
+  const col = F.map((_, j) => n.reduce((a, r) => a + r[j], 0));
+  const N = row.reduce((a, b) => a + b, 0);
+  return { X, F, n, row, col, N };
+}
+function frequencies(T) {
+  const { n, row, col, N } = T;
+  return {
+    joint: n.map(r => r.map(v => v / N)),
+    margX: row.map(v => v / N), margF: col.map(v => v / N),
+    fGivenX: n.map((r, i) => r.map(v => v / row[i])),      // row profiles
+    xGivenF: n.map(r => r.map((v, j) => v / col[j]))       // column profiles
+  };
+}
+function expectedFrequencies(T) { return T.row.map(ri => T.col.map(cj => ri * cj / T.N)); }
+function chiSquare(T) {
+  const E = expectedFrequencies(T), r = T.X.length, c = T.F.length;
+  let chi = 0, G = 0;
+  const res = T.n.map((row, i) => row.map((o, j) => {
+    const e = E[i][j], z = (o - e) / Math.sqrt(e);
+    chi += z * z; if (o > 0) G += 2 * o * Math.log(o / e);
+    return z;
+  }));
+  const df = (r - 1) * (c - 1);
+  let yates = NaN;
+  if (r === 2 && c === 2) { yates = 0; for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { const d = Math.max(0, Math.abs(T.n[i][j] - E[i][j]) - 0.5); yates += d * d / E[i][j]; } }
+  const V = Math.sqrt(chi / (T.N * (Math.min(r, c) - 1)));
+  return { E, res, chi, G, df, p: chi2sf(chi, df), pG: chi2sf(G, df), yates, pY: isNaN(yates) ? NaN : chi2sf(yates, df), V };
+}
+function chiFromCounts(n, row, col, N) {
+  let s = 0;
+  for (let i = 0; i < row.length; i++) for (let j = 0; j < col.length; j++) { const e = row[i] * col[j] / N, d = n[i][j] - e; s += d * d / e; }
+  return s;
+}
+
+/* ================= datasets ================= */
+function fromCounts(X, F, counts) {
+  const recs = [];
+  X.forEach((x, i) => F.forEach((f, j) => { for (let k = 0; k < counts[i][j]; k++) recs.push({ x, f, w: 1 }); }));
+  return recs;
+}
+const BERK = {
+  depts: ["A", "B", "C", "D", "E", "F"],
+  // [admitted, rejected] for Male, Female
+  M: [[512, 313], [353, 207], [120, 205], [138, 279], [53, 138], [22, 351]],
+  W: [[89, 19], [17, 8], [202, 391], [131, 244], [94, 299], [24, 317]]
+};
+const DATASETS = {
+  titanic: {
+    xName: "Class", fName: "Survived",
+    desc: "Everyone on board the RMS Titanic (April 1912), crew included, classified by class and by survival: 2,201 people. Data from the British Board of Trade inquiry, as compiled by Dawson (1995).",
+    make() { return { X: ["1st", "2nd", "3rd", "Crew"], F: ["Yes", "No"], recs: fromCounts(["1st", "2nd", "3rd", "Crew"], ["Yes", "No"], [[203, 122], [118, 167], [178, 528], [212, 673]]) }; }
+  },
+  hair: {
+    xName: "Hair", fName: "Eye",
+    desc: "592 statistics students at the University of Delaware classified by hair colour and eye colour (Snee, 1974).",
+    make() { const X = ["Black", "Brown", "Red", "Blond"], F = ["Brown", "Blue", "Hazel", "Green"]; return { X, F, recs: fromCounts(X, F, [[68, 20, 15, 5], [119, 84, 54, 29], [26, 17, 14, 14], [7, 94, 10, 16]]) }; }
+  },
+  berkeley: {
+    xName: "Gender", fName: "Admission",
+    desc: "4,526 applications to the six largest graduate departments of UC Berkeley, fall 1973, by gender of the applicant and admission decision (Bickel, Hammel and O’Connell, 1975). The department is ignored here; see the section on causality.",
+    make() {
+      let am = 0, rm = 0, aw = 0, rw = 0;
+      BERK.M.forEach(([a, r]) => { am += a; rm += r; }); BERK.W.forEach(([a, r]) => { aw += a; rw += r; });
+      const X = ["Men", "Women"], F = ["Admitted", "Rejected"];
+      return { X, F, recs: fromCounts(X, F, [[am, rm], [aw, rw]]) };
+    }
+  },
+  sim: {
+    xName: "Attack", fName: "Outcome",
+    desc: "",
+    make() {
+      const n = Math.max(20, Math.min(20000, Math.round(+$("s-n").value || 1000)));
+      const lam = +$("s-lam").value, rng = makeRng($("s-seed").value || "hw6");
+      const X = ["Phishing", "Brute force", "Malware", "Exploit"], F = ["Blocked", "Detected", "Breach"];
+      const px = [0.4, 0.25, 0.2, 0.15], p0 = [0.6, 0.3, 0.1];
+      const q = [[0.3, 0.4, 0.3], [0.92, 0.07, 0.01], [0.5, 0.35, 0.15], [0.35, 0.3, 0.35]];
+      const draw = p => { const u = rng(); let s = 0; for (let k = 0; k < p.length; k++) { s += p[k]; if (u < s) return k; } return p.length - 1; };
+      const recs = [];
+      for (let k = 0; k < n; k++) {
+        const i = draw(px), pf = p0.map((v, j) => (1 - lam) * v + lam * q[i][j]);
+        recs.push({ x: X[i], f: F[draw(pf)], w: 1 });
+      }
+      this.desc = `${n.toLocaleString("en-US")} alerts from a simulated intrusion-detection log: X is the attack vector, F what happened. The outcome is drawn from (1 − λ)·p₀ + λ·q(X), where p₀ is the same for every attack: with λ = ${lam} ${lam === 0 ? "the two variables are independent by construction, so any association in the table is sampling noise" : "the outcome depends on the attack, more strongly as λ grows"}.`;
+      return { X, F, recs };
+    }
+  },
+  own: {
+    xName: "X", fName: "F",
+    desc: "Your data, parsed from the text box. Levels are listed in order of first appearance (numerically if all are numbers).",
+    make() {
+      const lines = $("o-text").value.split(/\r?\n/).map(s => s.trim()).filter(s => s && !s.startsWith("#"));
+      if (!lines.length) throw new Error("No records found.");
+      const sep = lines[0].includes("\t") ? "\t" : lines[0].includes(";") ? ";" : ",";
+      let start = 0;
+      if ($("o-head").checked) { const h = lines[0].split(sep).map(s => s.trim()); this.xName = h[0] || "X"; this.fName = h[1] || "F"; start = 1; }
+      else { this.xName = "X"; this.fName = "F"; }
+      const recs = [];
+      for (let k = start; k < lines.length; k++) {
+        const p = lines[k].split(sep).map(s => s.trim());
+        if (p.length < 2 || p[0] === "" || p[1] === "") throw new Error(`Line ${k + 1}: expected at least two values.`);
+        let w = 1;
+        if (p.length >= 3 && p[2] !== "") { w = Number(p[2]); if (!isFinite(w) || w < 0) throw new Error(`Line ${k + 1}: the count “${p[2]}” is not a non-negative number.`); }
+        if (w > 0) recs.push({ x: p[0], f: p[1], w });
+      }
+      const order = vals => { const u = [...new Set(vals)]; return u.every(v => v !== "" && isFinite(+v)) ? u.sort((a, b) => a - b) : u; };
+      const X = order(recs.map(r => r.x)), F = order(recs.map(r => r.f));
+      if (X.length < 2 || F.length < 2) throw new Error("Each variable needs at least two different values.");
+      return { X, F, recs };
+    }
+  }
+};
+function ownExample() {
+  const X = ["Windows", "Linux", "macOS"], F = ["yes", "no"], c = [[9, 7], [2, 8], [3, 7]];
+  const recs = fromCounts(X, F, c), rng = makeRng("example");
+  for (let i = recs.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [recs[i], recs[j]] = [recs[j], recs[i]]; }
+  return "os,infected\n" + recs.map(r => `${r.x},${r.f}`).join("\n");
+}
+
+/* ================= state ================= */
+let S = null;   // { ds, T, Fr, C, perm }
+
+function analyse() {
+  const key = $("d-sel").value, ds = DATASETS[key];
+  $("sim-ctl").hidden = key !== "sim"; $("own-ctl").hidden = key !== "own";
+  $("o-err").textContent = "";
+  let data;
+  try { data = ds.make(); }
+  catch (e) { $("o-err").textContent = e.message; return; }
+  const T = buildContingencyTable(data.recs, data.X, data.F);
+  const Fr = frequencies(T), C = chiSquare(T);
+  S = { key, ds, recs: data.recs, T, Fr, C, alpha: +$("d-alpha").value };
+  S.perm = permutationTest(data.recs, T, C.chi);
+  $("d-desc").textContent = ds.desc;
+  renderRecords(); renderTables(); renderExpected(); renderStats(); renderConclusions();
+  drawAll();
+}
+
+/* ================= permutation test ================= */
+function permutationTest(recs, T, chiObs) {
+  const allInt = recs.every(r => Number.isInteger(r.w));
+  if (!allInt) return null;
+  const xi = new Map(T.X.map((v, i) => [v, i])), fi = new Map(T.F.map((v, i) => [v, i]));
+  const xs = [], fs = [];
+  for (const r of recs) for (let k = 0; k < r.w; k++) { xs.push(xi.get(r.x)); fs.push(fi.get(r.f)); }
+  const N = xs.length; if (N > 200000) return null;
+  let B = Math.max(200, Math.min(2000, Math.floor(2e7 / N)));
+  const rng = makeRng("perm|" + N + "|" + chiObs), f = Int32Array.from(fs), x = Int32Array.from(xs);
+  const r = T.X.length, c = T.F.length, cnt = new Float64Array(r * c), stats = new Float64Array(B);
+  let ge = 0;
+  const n2 = Array.from({ length: r }, () => new Array(c).fill(0));
+  for (let b = 0; b < B; b++) {
+    for (let i = N - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = f[i]; f[i] = f[j]; f[j] = t; }
+    cnt.fill(0); for (let i = 0; i < N; i++) cnt[x[i] * c + f[i]]++;
+    for (let i = 0; i < r; i++) for (let j = 0; j < c; j++) n2[i][j] = cnt[i * c + j];
+    const s = chiFromCounts(n2, T.row, T.col, T.N); stats[b] = s;
+    if (s >= chiObs - 1e-9) ge++;
+  }
+  return { B, stats, ge, p: (ge + 1) / (B + 1) };
+}
+
+/* ================= rendering: tables ================= */
+function renderRecords() {
+  const { recs, ds, T } = S, show = Math.min(6, recs.length), weighted = recs.some(r => r.w !== 1);
+  $("rec-cap").textContent = `The dataset as the program receives it: ${int(recs.length)} ${weighted ? "rows with counts" : "records"} (${show} of them shown)`;
+  let h = `<thead><tr><th>#</th><th style="text-align:left">${esc(ds.xName)} (X)</th><th style="text-align:left">${esc(ds.fName)} (F)</th>${weighted ? "<th>count</th>" : ""}</tr></thead><tbody>`;
+  const pick = [];
+  const rng = makeRng("preview" + recs.length);
+  const idx = recs.length > show ? Array.from({ length: show }, () => Math.floor(rng() * recs.length)).sort((a, b) => a - b) : recs.map((_, i) => i);
+  for (const i of idx) h += `<tr><td>${i + 1}</td><td class="txt">${esc(recs[i].x)}</td><td class="txt">${esc(recs[i].f)}</td>${weighted ? `<td>${num(recs[i].w, 6)}</td>` : ""}</tr>`;
+  $("t-records").innerHTML = h + "</tbody>";
+  $("t-records").style.width = "auto";
+}
+function head(T, corner, last) {
+  return `<thead><tr><th>${esc(corner)}</th>${T.F.map(f => `<th>${esc(f)}</th>`).join("")}${last ? `<th>${last}</th>` : ""}</tr></thead>`;
+}
+function renderTables() {
+  const { T, Fr, ds } = S, corner = `${ds.xName} \\ ${ds.fName}`;
+  // counts
+  let h = `<caption>Observed counts n<sub>ij</sub> with marginal totals</caption>` + head(T, corner, "Total") + "<tbody>";
+  T.X.forEach((x, i) => { h += `<tr><td class="lab">${esc(x)}</td>${T.n[i].map(v => `<td>${num(v, 6)}</td>`).join("")}<td class="tot">${num(T.row[i], 7)}</td></tr>`; });
+  h += `<tr class="tot"><td class="lab">Total</td>${T.col.map(v => `<td>${num(v, 7)}</td>`).join("")}<td>${num(T.N, 7)}</td></tr></tbody>`;
+  $("t-counts").innerHTML = h;
+  // joint relative
+  h = `<caption>Joint relative frequencies n<sub>ij</sub>/n and marginals</caption>` + head(T, corner, "Marginal X") + "<tbody>";
+  T.X.forEach((x, i) => { h += `<tr><td class="lab">${esc(x)}</td>${Fr.joint[i].map(v => `<td>${v.toFixed(4)}</td>`).join("")}<td class="tot">${Fr.margX[i].toFixed(4)}</td></tr>`; });
+  h += `<tr class="tot"><td class="lab">Marginal F</td>${Fr.margF.map(v => `<td>${v.toFixed(4)}</td>`).join("")}<td>1.0000</td></tr></tbody>`;
+  $("t-joint").innerHTML = h;
+  // F | X
+  h = `<caption>Conditional frequencies of ${esc(ds.fName)} given ${esc(ds.xName)}, n<sub>ij</sub>/n<sub>i·</sub></caption>` + head(T, corner, "Total") + "<tbody>";
+  T.X.forEach((x, i) => { h += `<tr><td class="lab">${esc(x)}</td>${Fr.fGivenX[i].map(v => `<td>${pct(v)}</td>`).join("")}<td class="tot">100%</td></tr>`; });
+  h += `<tr class="tot"><td class="lab">Marginal</td>${Fr.margF.map(v => `<td>${pct(v)}</td>`).join("")}<td>100%</td></tr></tbody>`;
+  $("t-fx").innerHTML = h;
+  // X | F
+  h = `<caption>Conditional frequencies of ${esc(ds.xName)} given ${esc(ds.fName)}, n<sub>ij</sub>/n<sub>·j</sub></caption>` + head(T, corner, "Marginal") + "<tbody>";
+  T.X.forEach((x, i) => { h += `<tr><td class="lab">${esc(x)}</td>${Fr.xGivenF[i].map(v => `<td>${pct(v)}</td>`).join("")}<td class="tot">${pct(Fr.margX[i])}</td></tr>`; });
+  h += `<tr class="tot"><td class="lab">Total</td>${T.F.map(() => "<td>100%</td>").join("")}<td>100%</td></tr></tbody>`;
+  $("t-xf").innerHTML = h;
+}
+function resColor(z, zmax) {
+  const a = Math.min(1, Math.abs(z) / zmax), pctA = Math.round(8 + 50 * a);
+  return `background: color-mix(in srgb, var(${z >= 0 ? "--pos" : "--neg"}) ${pctA}%, transparent)`;
+}
+function renderExpected() {
+  const { T, C, ds } = S, corner = `${ds.xName} \\ ${ds.fName}`;
+  let h = `<caption>Expected counts E<sub>ij</sub> = n<sub>i·</sub> n<sub>·j</sub> / n</caption>` + head(T, corner, "Total") + "<tbody>";
+  T.X.forEach((x, i) => { h += `<tr><td class="lab">${esc(x)}</td>${C.E[i].map(v => `<td class="${v < 5 ? "bad" : ""}">${v.toFixed(2)}</td>`).join("")}<td class="tot">${num(T.row[i], 7)}</td></tr>`; });
+  h += `<tr class="tot"><td class="lab">Total</td>${T.col.map(v => `<td>${num(v, 7)}</td>`).join("")}<td>${num(T.N, 7)}</td></tr></tbody>`;
+  $("t-exp").innerHTML = h;
+  const zmax = Math.max(2, ...C.res.flat().map(Math.abs));
+  h = `<caption>Pearson residuals r<sub>ij</sub> = (n<sub>ij</sub> − E<sub>ij</sub>)/√E<sub>ij</sub></caption>` + head(T, corner, "") + "<tbody>";
+  T.X.forEach((x, i) => {
+    h += `<tr><td class="lab">${esc(x)}</td>${C.res[i].map((z, j) => `<td class="res-cell" style="${resColor(z, zmax)}" title="observed ${num(T.n[i][j], 6)}, expected ${C.E[i][j].toFixed(2)}">${(z >= 0 ? "+" : "−") + Math.abs(z).toFixed(2)} <span class="small">(${(z * z).toFixed(2)})</span></td>`).join("")}</tr>`;
+  });
+  h += `<tr class="tot"><td class="lab">Σ r² = χ²</td><td colspan="${T.F.length}" style="text-align:right">${C.chi.toFixed(3)}</td></tr></tbody>`;
+  $("t-res").innerHTML = h;
+  const E = C.E.flat(), below5 = E.filter(v => v < 5).length, below1 = E.filter(v => v < 1).length, minE = Math.min(...E);
+  S.cochranOK = below1 === 0 && below5 <= 0.2 * E.length;
+  $("exp-check").innerHTML = `Smallest expected count: ${minE.toFixed(2)}. Cells with E &lt; 5: ${below5} of ${E.length} (${(100 * below5 / E.length).toFixed(0)}%); cells with E &lt; 1: ${below1}. ` +
+    (S.cochranOK ? "Cochran’s condition holds, so the chi-square approximation of the p-value is reliable." : `<span class="err">Cochran’s condition fails: the chi-square p-value is only approximate, and the permutation p-value below is the one to trust.</span>`);
+}
+function renderStats() {
+  const { C, alpha, perm, T } = S, crit = chi2crit(alpha, C.df);
+  S.crit = crit;
+  const box = (v, l) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+  let h = box(int(T.N), "records n") + box(`${T.X.length} × ${T.F.length}`, "table size r × c") + box(C.df, "degrees of freedom ν") +
+    box(C.chi.toFixed(3), "Pearson χ²") + box(crit.toFixed(3), `critical value χ²<sub>ν, ${1 - alpha}</sub>`) + box(pfmt(C.p), "p-value (χ² distribution)") +
+    (perm ? box(perm.ge === 0 ? `&lt; ${(1 / (perm.B + 1)).toFixed(4)}` : perm.p.toFixed(4), `p-value (permutation, ${perm.B} shuffles)`) : "") +
+    box(C.V.toFixed(3), "Cramér’s V") + box(`${C.G.toFixed(3)}`, `likelihood ratio G² (p = ${pfmt(C.pG)})`);
+  if (!isNaN(C.yates)) h += box(C.yates.toFixed(3), `Yates-corrected χ² (p = ${pfmt(C.pY)})`);
+  $("stats").innerHTML = h;
+  const reject = C.p < alpha;
+  S.reject = reject;
+  $("verdict").innerHTML = `<p class="verdict" style="margin:0 0 4px">${reject ? `χ² = ${C.chi.toFixed(2)} &gt; ${crit.toFixed(2)}: independence is rejected at α = ${alpha}.` : `χ² = ${C.chi.toFixed(2)} ≤ ${crit.toFixed(2)}: independence is not rejected at α = ${alpha}.`}</p>
+    <p style="margin:0">${reject ? `If ${esc(S.ds.xName)} and ${esc(S.ds.fName)} were independent, a statistic this large would occur with probability ${pfmt(C.p)}. The data are evidence that the two variables are dependent.` : `A statistic at least this large would occur with probability ${pfmt(C.p)} even under independence, so the differences from the expected counts are compatible with sampling noise. This does not prove independence; it means the data give no evidence against it.`}</p>`;
+  if (perm) {
+    $("perm-note").textContent = `Out of ${perm.B} permuted datasets, ${perm.ge} gave χ² ≥ ${C.chi.toFixed(2)}, so the permutation p-value is (${perm.ge} + 1)/(${perm.B} + 1) = ${perm.p.toFixed(4)}` + (perm.ge === 0 ? `, the smallest value this number of shuffles can give; the exact p-value is smaller.` : ".") + ` The histogram follows the χ²(${C.df}) density, which is what justifies the asymptotic p-value.`;
+  } else $("perm-note").textContent = "The permutation test needs integer counts and is skipped for this dataset.";
+}
+function strength(V) { return V < 0.1 ? "negligible" : V < 0.2 ? "weak" : V < 0.4 ? "moderate" : "strong"; }
+function renderConclusions() {
+  const { T, C, ds, alpha, Fr } = S;
+  const cells = [];
+  T.X.forEach((x, i) => T.F.forEach((f, j) => cells.push({ x, f, z: C.res[i][j], o: T.n[i][j], e: C.E[i][j], c: C.res[i][j] ** 2 })));
+  cells.sort((a, b) => b.c - a.c);
+  const top = cells.slice(0, Math.min(3, cells.length)).map(c => `<li><b>${esc(ds.xName)} = ${esc(c.x)}, ${esc(ds.fName)} = ${esc(c.f)}</b>: ${num(c.o, 6)} observed against ${c.e.toFixed(1)} expected (r = ${(c.z >= 0 ? "+" : "−") + Math.abs(c.z).toFixed(2)}, ${(100 * c.c / C.chi).toFixed(0)}% of χ²).</li>`).join("");
+  let extra = "";
+  if (S.key === "berkeley") extra = `<p style="margin:6px 0 0">For this dataset the next section shows that the association largely disappears once the department is taken into account.</p>`;
+  if (S.key === "sim") extra = `<p style="margin:6px 0 0">${+$("s-lam").value === 0 ? "Here the variables are independent by construction. Over many seeds the test rejects in about α of the cases: each rejection would be a false positive." : "Here the dependence is built into the simulation; lower λ or n to see when the test stops detecting it."}</p>`;
+  $("concl").innerHTML = `<p style="margin:0 0 6px"><b>For the selected dataset</b> (${esc(ds.xName)} × ${esc(ds.fName)}, n = ${int(T.N)}):</p>
+  <ul class="tight" style="margin:0">
+    <li>χ² = ${C.chi.toFixed(2)} with ${C.df} degrees of freedom, p = ${pfmt(C.p)}${S.perm ? ` (permutation: ${S.perm.ge === 0 ? "&lt; " + (1 / (S.perm.B + 1)).toFixed(4) : S.perm.p.toFixed(4)})` : ""}. At α = ${alpha} the variables are judged <b>${S.reject ? "dependent" : "compatible with independence"}</b>.</li>
+    <li>Cramér’s V = ${C.V.toFixed(3)}: by the usual rule of thumb the association is ${strength(C.V)}${S.reject && C.V < 0.1 ? ", significant only because the sample is large" : ""}.</li>
+    <li>The cells that contribute most to χ²:<ul class="tight" style="margin-top:4px">${top}</ul></li>
+    ${S.cochranOK ? "" : "<li>Some expected counts are small, so the permutation p-value is the more reliable one.</li>"}
+  </ul>${extra}
+  <p style="margin:8px 0 0">In general: the contingency table and its marginals describe the data; the expected counts describe what independence would look like with the same marginals; χ² measures the distance between the two and the p-value says whether that distance is larger than chance would produce. A rejection establishes association, not its cause, and the size of the association is read from Cramér’s V and from the conditional frequencies, not from the p-value.</p>`;
+}
+
+/* Berkeley stratified analysis (always computed from the data above) */
+function renderBerkeley() {
+  let h = `<caption>Admission by gender, department by department</caption><thead><tr><th>Department</th><th>applicants men</th><th>applicants women</th><th>admitted men</th><th>admitted women</th><th>χ² (1 d.o.f.)</th><th>p-value</th></tr></thead><tbody>`;
+  let tm = [0, 0], tw = [0, 0], sig = [];
+  BERK.depts.forEach((d, k) => {
+    const m = BERK.M[k], w = BERK.W[k];
+    tm[0] += m[0]; tm[1] += m[1]; tw[0] += w[0]; tw[1] += w[1];
+    const T = buildContingencyTable(fromCounts(["Men", "Women"], ["Admitted", "Rejected"], [m, w]), ["Men", "Women"], ["Admitted", "Rejected"]);
+    const C = chiSquare(T), rm = m[0] / (m[0] + m[1]), rw = w[0] / (w[0] + w[1]);
+    if (C.p < 0.05) sig.push({ d, rm, rw, p: C.p });
+    h += `<tr><td class="lab">${d}</td><td>${int(m[0] + m[1])}</td><td>${int(w[0] + w[1])}</td><td>${pct(rm)}</td><td>${pct(rw)}</td><td>${C.chi.toFixed(2)}</td><td class="${C.p < 0.05 ? "bad" : ""}">${pfmt(C.p)}</td></tr>`;
+  });
+  const T = buildContingencyTable(fromCounts(["Men", "Women"], ["Admitted", "Rejected"], [tm, tw]), ["Men", "Women"], ["Admitted", "Rejected"]);
+  const C = chiSquare(T), rm = tm[0] / (tm[0] + tm[1]), rw = tw[0] / (tw[0] + tw[1]);
+  h += `<tr class="tot"><td class="lab">All, pooled</td><td>${int(tm[0] + tm[1])}</td><td>${int(tw[0] + tw[1])}</td><td>${pct(rm)}</td><td>${pct(rw)}</td><td>${C.chi.toFixed(2)}</td><td class="bad">${pfmt(C.p)}</td></tr></tbody>`;
+  $("t-berk").innerHTML = h;
+  const s = sig[0];
+  $("berk-text").innerHTML = `Pooled over the six departments, ${pct(rm)} of the men and ${pct(rw)} of the women were admitted, and the chi-square test rejects independence of gender and admission overwhelmingly (χ² = ${C.chi.toFixed(1)}, p ≈ ${pfmt(C.p)}). Read causally, this would mean that being a woman lowered the chance of admission. Inside the departments the picture changes: in ${6 - sig.length} of the six the test does not reject independence, and the only department where it does, ${s.d}, admitted women at a <em>higher</em> rate (${pct(s.rw)} against ${pct(s.rm)}, p = ${pfmt(s.p)}).`;
+}
+
+/* ================= plotting ================= */
+function niceTicks(a, b, n = 5) {
+  const span = b - a; if (!(span > 0)) return [a];
+  const s0 = span / n, p = Math.pow(10, Math.floor(Math.log10(s0))), f = s0 / p;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p, t = [];
+  for (let v = Math.ceil(a / step - 1e-9) * step; v <= b + step * 1e-9; v += step) t.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+  return t;
+}
+function tickLabel(v) { if (v === 0) return "0"; const a = Math.abs(v); if (a >= 1e4 || a < 1e-3) return minus(v.toExponential(0).replace("e+", "e")); return minus((+v.toPrecision(3)).toString()); }
+function prepCanvas(canvas) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), W = canvas.clientWidth, H = canvas.clientHeight;
+  if (!W || !H) return null;
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  const c = canvas.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  canvas._hits = [];
+  return { c, W, H };
+}
+function plot(canvas, o) {
+  const pc = prepCanvas(canvas); if (!pc) return null;
+  const { c, W, H } = pc;
+  const M = { l: 44, r: 12, t: 12, b: o.xlabel ? 36 : 22 };
+  const X = v => M.l + (v - o.x0) / (o.x1 - o.x0) * (W - M.l - M.r);
+  const Y = v => H - M.b - (v - o.y0) / (o.y1 - o.y0) * (H - M.t - M.b);
+  const mute = css("--muted"), line = css("--line"), ink = css("--ink");
+  c.font = '10.5px "IBM Plex Mono", ui-monospace, monospace'; c.lineWidth = 1;
+  c.strokeStyle = line; c.fillStyle = mute; c.textAlign = "center"; c.textBaseline = "top";
+  for (const v of niceTicks(o.x0, o.x1, 6)) { const x = Math.round(X(v)) + .5; c.beginPath(); c.moveTo(x, M.t); c.lineTo(x, H - M.b); c.stroke(); const lb = tickLabel(v), hw = c.measureText(lb).width / 2; c.fillText(lb, Math.max(hw + 1, Math.min(x, W - hw - 1)), H - M.b + 4); }
+  c.textAlign = "right"; c.textBaseline = "middle";
+  for (const v of niceTicks(o.y0, o.y1, 4)) { const y = Math.round(Y(v)) + .5; c.beginPath(); c.moveTo(M.l, y); c.lineTo(W - M.r, y); c.stroke(); c.fillText(tickLabel(v), M.l - 5, y); }
+  c.strokeStyle = mute; c.beginPath(); c.moveTo(M.l + .5, M.t); c.lineTo(M.l + .5, H - M.b + .5); c.lineTo(W - M.r, H - M.b + .5); c.stroke();
+  c.font = '11px "IBM Plex Sans", system-ui, sans-serif';
+  if (o.xlabel) { c.textAlign = "center"; c.textBaseline = "bottom"; c.fillText(o.xlabel, (M.l + W - M.r) / 2, H - 3); }
+  return {
+    c, X, Y, W, H, M, ink, mute,
+    clip() { c.save(); c.beginPath(); c.rect(M.l, M.t - 2, W - M.l - M.r, H - M.t - M.b + 2); c.clip(); },
+    unclip() { c.restore(); },
+    path(xs, ys, col, w = 2, dash = []) { c.save(); c.strokeStyle = col; c.lineWidth = w; c.setLineDash(dash); c.lineJoin = "round"; c.beginPath(); let on = false; xs.forEach((x, i) => { const y = ys[i]; if (!isFinite(y)) { on = false; return; } on ? c.lineTo(X(x), Y(y)) : c.moveTo(X(x), Y(y)); on = true; }); c.stroke(); c.restore(); },
+    vline(x, col, dash = [], w = 2) { c.save(); c.strokeStyle = col; c.lineWidth = w; c.setLineDash(dash); c.beginPath(); c.moveTo(X(x), M.t); c.lineTo(X(x), H - M.b); c.stroke(); c.restore(); }
+  };
+}
+const SERIES = ["--s1", "--s2", "--s3", "--s4", "--s5", "--s6", "--s7", "--s8"];
+function seriesColor(j, k) { return k <= 8 ? css(SERIES[j]) : null; }
+function roundRect(c, x, y, w, h, rl, rr) {
+  c.beginPath(); c.moveTo(x + rl, y); c.lineTo(x + w - rr, y); c.arcTo(x + w, y, x + w, y + rr, rr); c.lineTo(x + w, y + h - rr); c.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+  c.lineTo(x + rl, y + h); c.arcTo(x, y + h, x, y + h - rl, rl); c.lineTo(x, y + rl); c.arcTo(x, y, x + rl, y, rl); c.closePath();
+}
+
+function drawProfiles() {
+  const { T, Fr, ds } = S, dir = $("p-dir").value, cv = $("c-prof");
+  const groups = dir === "row" ? T.X : T.F, cats = dir === "row" ? T.F : T.X;
+  const prof = dir === "row" ? Fr.fGivenX : T.F.map((_, j) => T.X.map((_, i) => Fr.xGivenF[i][j]));
+  const counts = dir === "row" ? T.n : T.F.map((_, j) => T.X.map((_, i) => T.n[i][j]));
+  const marg = dir === "row" ? Fr.margF : Fr.margX;
+  const gName = dir === "row" ? ds.xName : ds.fName, cName = dir === "row" ? ds.fName : ds.xName;
+  const K = cats.length, many = K > 8;
+  const colorOf = j => many ? `color-mix(in srgb, ${css("--s1")} ${Math.round(100 - 80 * j / (K - 1))}%, ${css("--surface")})` : css(SERIES[j]);
+  $("p-legend").innerHTML = `<span class="small" style="margin-right:10px">${esc(cName)}:</span>` + cats.map((c, j) => `<span class="key"><span class="blk" style="background:${colorOf(j)}"></span>${esc(c)}</span>`).join("");
+  const rows = groups.length + 1, rowH = 26, gap = 8;
+  cv.style.height = (rows * (rowH + gap) + 34) + "px";
+  const pc = prepCanvas(cv); if (!pc) return;
+  const { c, W, H } = pc;
+  c.font = '12px "IBM Plex Sans", system-ui, sans-serif';
+  const labels = [...groups.map(String), "All"], lw = Math.min(150, Math.max(...labels.map(l => c.measureText(l).width)) + 14);
+  const x0 = lw + 8, x1 = W - 14, bw = x1 - x0, ink = css("--ink"), mute = css("--muted"), surf = css("--surface");
+  const draw = (k, p, cnt, label, total) => {
+    const y = 10 + k * (rowH + gap);
+    c.fillStyle = k === rows - 1 ? ink : mute; c.textAlign = "right"; c.textBaseline = "middle";
+    c.font = (k === rows - 1 ? "600 " : "") + '12px "IBM Plex Sans", system-ui, sans-serif';
+    c.fillText(label, lw, y + rowH / 2);
+    let acc = 0;
+    p.forEach((v, j) => {
+      const xa = x0 + acc * bw, w = v * bw; acc += v;
+      if (w <= 0) return;
+      const first = acc - v < 1e-12, last = acc > 1 - 1e-9;
+      c.fillStyle = colorOf(j); roundRect(c, xa, y, Math.max(0.5, w - (last ? 0 : 2)), rowH, first ? 4 : 0, last ? 4 : 0); c.fill();
+      if (w > 34) {
+        c.font = '11px "IBM Plex Mono", monospace'; c.textAlign = "center";
+        c.fillStyle = "#fff"; c.globalAlpha = 1;
+        const txt = (100 * v).toFixed(v < 0.1 ? 1 : 0) + "%";
+        c.save(); c.shadowColor = "rgba(0,0,0,.35)"; c.shadowBlur = 2; c.fillText(txt, xa + w / 2 - 1, y + rowH / 2 + 0.5); c.restore();
+      }
+      cv._hits.push({ x0: xa, x1: xa + w, y0: y, y1: y + rowH, html: `<b>${esc(gName)} = ${esc(label)}</b><br>${esc(cName)} = ${esc(cats[j])}: ${pct(v)}${cnt ? ` (${num(cnt[j], 6)} of ${num(total, 7)})` : " (marginal)"}` });
+    });
+  };
+  groups.forEach((g, k) => draw(k, prof[k], counts[k], String(g), counts[k].reduce((a, b) => a + b, 0)));
+  // separator before "All"
+  const ys = 10 + groups.length * (rowH + gap) - gap / 2;
+  c.strokeStyle = css("--line"); c.beginPath(); c.moveTo(x0, ys + .5); c.lineTo(x1, ys + .5); c.stroke();
+  draw(groups.length, marg, null, "All", T.N);
+  // axis
+  c.fillStyle = mute; c.font = '10.5px "IBM Plex Mono", monospace'; c.textBaseline = "top";
+  for (let t = 0; t <= 4; t++) { const x = x0 + bw * t / 4; c.textAlign = t === 0 ? "left" : t === 4 ? "right" : "center"; c.fillText((25 * t) + "%", x, H - 18); }
+}
+function drawChi() {
+  const { C, crit } = S, k = C.df, obs = C.chi, acc = css("--accent"), warn = css("--warn"), ink = css("--ink");
+  let x1 = Math.max(crit * 1.6, k + 4 * Math.sqrt(2 * k));
+  const inside = obs <= x1 * 1.15 || obs < crit * 3;
+  if (inside) x1 = Math.max(x1, obs * 1.15);
+  const xs = []; for (let i = 0; i <= 400; i++) xs.push(x1 * i / 400);
+  const ys = xs.map(x => chi2pdf(x, k));
+  const yMax = k <= 2 ? Math.min(Math.max(...ys.filter(isFinite).slice(4)) * 1.3, 1) : Math.max(...ys) * 1.15;
+  const P = plot($("c-chi"), { x0: 0, x1, y0: 0, y1: yMax, xlabel: "χ²" });
+  if (!P) return;
+  const c = P.c;
+  P.clip();
+  if (inside) {
+    c.save(); c.fillStyle = acc; c.globalAlpha = .25; c.beginPath(); c.moveTo(P.X(obs), P.Y(0));
+    for (const x of xs) if (x >= obs) c.lineTo(P.X(x), P.Y(Math.min(chi2pdf(x, k), yMax)));
+    c.lineTo(P.X(x1), P.Y(0)); c.closePath(); c.fill(); c.restore();
+  }
+  P.path(xs, ys.map(y => Math.min(y, yMax * 1.05)), ink, 2);
+  P.vline(crit, warn, [5, 4], 1.5);
+  if (inside) P.vline(obs, acc, [], 2);
+  P.unclip();
+  c.font = '11px "IBM Plex Sans", system-ui, sans-serif'; c.fillStyle = P.mute; c.textBaseline = "top";
+  const lab = (x, t, col) => { const w = c.measureText(t).width; let px = P.X(x) + 5; if (px + w > P.W - P.M.r) px = P.X(x) - 5 - w; boxText(c, t, px, P.M.t + 2, "left", col); };
+  lab(crit, `critical ${crit.toFixed(2)}`, css("--muted"));
+  if (inside) { const t = `observed ${obs.toFixed(2)}`, w = c.measureText(t).width; let px = P.X(obs) + 5; if (px + w > P.W - P.M.r) px = P.X(obs) - 5 - w; boxText(c, t, px, P.M.t + 20, "left", ink); }
+  else boxText(c, `observed χ² = ${obs.toFixed(1)}, far to the right →`, P.W - P.M.r - 4, P.M.t + 22, "right", ink);
+}
+function drawPerm() {
+  const { perm, C } = S, cv = $("c-perm");
+  if (!perm) { const pc = prepCanvas(cv); if (pc) { pc.c.fillStyle = css("--muted"); pc.c.font = '12px "IBM Plex Sans", sans-serif'; pc.c.textAlign = "center"; pc.c.fillText("Permutation test not available for this dataset", pc.W / 2, pc.H / 2); } return; }
+  const k = C.df, st = Float64Array.from(perm.stats).sort();
+  let x1 = Math.max(st[Math.floor(0.995 * (st.length - 1))] * 1.1, S.crit * 1.3);
+  const inside = C.chi <= x1 * 1.5; if (inside) x1 = Math.max(x1, C.chi * 1.1);
+  const bins = 40, w = x1 / bins, h = new Float64Array(bins);
+  for (const v of st) { const i = Math.floor(v / w); if (i < bins) h[i]++; }
+  const dens = Array.from(h, v => v / (st.length * w));
+  const xs = []; for (let i = 0; i <= 300; i++) xs.push(x1 * i / 300);
+  const ys = xs.map(x => chi2pdf(x, k));
+  const yMax = Math.max(...dens, ...(k <= 2 ? ys.slice(6) : ys).filter(isFinite)) * 1.12;
+  const P = plot(cv, { x0: 0, x1, y0: 0, y1: yMax, xlabel: "χ² of permuted data" });
+  if (!P) return;
+  const c = P.c, teal = css("--teal");
+  P.clip();
+  dens.forEach((d, i) => {
+    if (!d) return;
+    const xa = P.X(i * w), xb = P.X((i + 1) * w), y = P.Y(d);
+    c.save(); c.fillStyle = teal; c.globalAlpha = .55; roundRect(c, xa + 1, y, Math.max(1, xb - xa - 2), P.Y(0) - y, Math.min(3, (xb - xa - 2) / 2), Math.min(3, (xb - xa - 2) / 2)); c.fill(); c.restore();
+    cv._hits.push({ x0: xa, x1: xb, y0: P.M.t, y1: P.Y(0), html: `χ² in [${(i * w).toFixed(2)}, ${((i + 1) * w).toFixed(2)})<br>${h[i]} of ${perm.B} shuffles` });
+  });
+  P.path(xs, ys.map(y => Math.min(y, yMax * 1.05)), P.ink, 1.5, [5, 3]);
+  if (inside) P.vline(C.chi, css("--accent"), [], 2);
+  P.unclip();
+  c.font = '11px "IBM Plex Sans", system-ui, sans-serif'; c.fillStyle = P.ink; c.textBaseline = "top";
+  if (inside) { const t = `observed ${C.chi.toFixed(2)}`, tw = c.measureText(t).width; let px = P.X(C.chi) + 5; if (px + tw > P.W - P.M.r) px = P.X(C.chi) - 5 - tw; boxText(c, t, px, P.M.t + 2, "left", P.ink); }
+  else boxText(c, `observed χ² = ${C.chi.toFixed(1)}, far to the right →`, P.W - P.M.r - 4, P.M.t + 2, "right", P.ink);
+}
+function boxText(c, t, x, y, align, col) {
+  const w = c.measureText(t).width, px = align === "right" ? x - w : x;
+  c.save(); c.fillStyle = css("--surface"); c.globalAlpha = .9; c.fillRect(px - 3, y - 1, w + 6, 15); c.restore();
+  c.fillStyle = col; c.textAlign = "left"; c.fillText(t, px, y);
+}
+function drawAll() { if (!S) return; drawProfiles(); drawChi(); drawPerm(); }
+
+/* tooltips */
+const tip = $("tip");
+for (const id of ["c-prof", "c-perm"]) {
+  const cv = $(id);
+  cv.addEventListener("mousemove", e => {
+    const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    const h = (cv._hits || []).find(h => x >= h.x0 && x <= h.x1 && y >= h.y0 - 2 && y <= h.y1 + 2);
+    if (!h) { tip.hidden = true; return; }
+    tip.innerHTML = h.html; tip.hidden = false;
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    tip.style.left = Math.min(window.innerWidth - tw - 8, e.clientX + 12) + "px";
+    tip.style.top = Math.max(8, e.clientY - th - 10) + "px";
+  });
+  cv.addEventListener("mouseleave", () => { tip.hidden = true; });
+}
+
+/* events */
+$("o-text").value = ownExample();
+$("d-sel").addEventListener("change", analyse);
+$("d-alpha").addEventListener("change", () => { if (!S) return; S.alpha = +$("d-alpha").value; renderStats(); renderConclusions(); drawAll(); });
+$("p-dir").addEventListener("change", drawProfiles);
+$("s-run").addEventListener("click", () => { const s = $("s-seed"); s.value = "hw6-" + Math.floor(Math.random() * 1e6); analyse(); });
+$("s-lam").addEventListener("input", () => { $("s-lam-v").textContent = $("s-lam").value; });
+$("s-lam").addEventListener("change", analyse);
+for (const id of ["s-n", "s-seed"]) $(id).addEventListener("change", analyse);
+$("o-run").addEventListener("click", analyse);
+let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderExpected(); drawAll(); });
+renderBerkeley();
+analyse();
+</script>
+</body>
+</html>
